@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { QUESTIONS } from '../data'
 import { grade } from './grading'
-import { pickRandom } from './sets'
+import { pickRandom, pickRemaining, remainingIds } from './sets'
 import type { Question } from '../types'
 
 const find = (id: string) => QUESTIONS.find((q) => q.id === id) as Question
@@ -61,6 +61,26 @@ describe('question bank integrity', () => {
       }
       if (q.type === 'ordering') expect(new Set(q.items).size, q.id).toBe(q.items.length)
     }
+  })
+})
+
+describe('pickRemaining', () => {
+  const all = QUESTIONS.map((q) => q.id)
+  it('excludes seen ids and returns only the rest', () => {
+    const seen = new Set(pickRandom(50, 3, {}, new Set()))
+    const rest = pickRemaining(50, 1, seen)
+    expect(rest.length).toBe(all.length - seen.size)
+    expect(rest.some((id) => seen.has(id))).toBe(false)
+    expect(new Set(rest).size).toBe(rest.length)
+  })
+  it('caps at N and is deterministic per seed', () => {
+    const a = pickRemaining(10, 9, new Set())
+    expect(a.length).toBe(10)
+    expect(pickRemaining(10, 9, new Set())).toEqual(a)
+  })
+  it('returns empty when everything is seen, respects parts', () => {
+    expect(pickRemaining(50, 1, new Set(all))).toEqual([])
+    expect(remainingIds(new Set(), [2]).every((id) => QUESTIONS.find((q) => q.id === id)!.part === 2)).toBe(true)
   })
 })
 

@@ -35,6 +35,8 @@ interface Ctx {
   /** last submitted session kept for the result page */
   lastResult: Session | null
   resetAll: () => void
+  /** start a new round: forget which questions were seen, keep history and wrong book */
+  resetSeen: () => void
   reloadFromStorage: () => void
 }
 
@@ -202,6 +204,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         persistSession(null)
       },
       lastResult,
+      resetSeen: () => {
+        remove('seen')
+        setSeen([])
+      },
       resetAll: () => {
         for (const k of ['session', 'last', 'history', 'wrong', 'seen']) remove(k)
         setSession(null)
