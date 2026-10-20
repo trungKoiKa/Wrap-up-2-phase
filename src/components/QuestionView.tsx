@@ -2,6 +2,8 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Check, GripVertical, X } from 'lucide-react'
+import { useRef, type KeyboardEvent } from 'react'
+import { indentEdit } from '../lib/indent'
 import type { Answer, Question } from '../types'
 
 interface Props {
@@ -107,6 +109,34 @@ function SortableRow({ id, state, disabled, n }: { id: string; state: 'ok' | 'ba
 }
 
 export default function QuestionView({ q, answer, order, onChange, checked, locked }: Props) {
+  // After Esc the next Tab leaves the textarea (keyboard-trap escape hatch, WCAG 2.1.2).
+  const escaped = useRef(false)
+
+  function onTextareaKey(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Escape') {
+      escaped.current = true
+      return
+    }
+    if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) {
+      escaped.current = false
+      return
+    }
+    if (escaped.current) {
+      escaped.current = false
+      return // let the browser move focus
+    }
+    e.preventDefault()
+    const ta = e.currentTarget
+    const ed = indentEdit(ta.value, ta.selectionStart, ta.selectionEnd, e.shiftKey)
+    ta.setSelectionRange(ed.from, ed.to)
+    // execCommand keeps the native undo stack (Ctrl+Z) and fires the input event React listens to
+    if (!document.execCommand('insertText', false, ed.text)) {
+      ta.setRangeText(ed.text, ed.from, ed.to, 'end')
+      ta.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    ta.setSelectionRange(ed.selStart, ed.selEnd)
+  }
+
   if (q.type === 'single') {
     const opts = order ?? [q.answer, ...q.distractors]
     const sel = answer?.t === 'single' ? answer.v : ''
@@ -267,11 +297,18 @@ export default function QuestionView({ q, answer, order, onChange, checked, lock
         value={val}
         disabled={locked && checked}
         onChange={(e) => onChange({ t: 'open', v: e.target.value, self })}
-        rows={5}
+        onKeyDown={onTextareaKey}
+        onBlur={() => (escaped.current = false)}
+        rows={6}
+        spellCheck={false}
         placeholder="Viết nháp câu trả lời của bạn (không bắt buộc)…"
-        className="w-full rounded-2xl border border-line bg-surface px-4 py-3 text-base"
+        className="w-full rounded-2xl border border-line bg-surface px-4 py-3 font-mono text-[0.95rem] leading-relaxed"
         aria-label="Câu trả lời nháp"
+        aria-describedby={'tab-hint-' + q.id}
       />
+      <p id={'tab-hint-' + q.id} className="text-xs text-muted">
+        Tab để thụt lề (Shift+Tab để giảm). Muốn rời khỏi ô bằng bàn phím: nhấn Esc rồi Tab.
+      </p>
       {checked && (
         <>
           <div className="rounded-2xl border border-primary bg-primary-soft p-4">
