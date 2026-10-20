@@ -304,11 +304,7 @@ export default function QuestionView({ q, answer, order, onChange, checked, lock
         placeholder="Viết nháp câu trả lời của bạn (không bắt buộc)…"
         className="w-full rounded-2xl border border-line bg-surface px-4 py-3 font-mono text-[0.95rem] leading-relaxed"
         aria-label="Câu trả lời nháp"
-        aria-describedby={'tab-hint-' + q.id}
       />
-      <p id={'tab-hint-' + q.id} className="text-xs text-muted">
-        Tab để thụt lề (Shift+Tab để giảm). Muốn rời khỏi ô bằng bàn phím: nhấn Esc rồi Tab.
-      </p>
       {checked && (
         <>
           <div className="rounded-2xl border border-primary bg-primary-soft p-4">
