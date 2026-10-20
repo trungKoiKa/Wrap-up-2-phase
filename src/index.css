@@ -1,0 +1,140 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Design tokens — hai bảng màu: "ocean" (xanh biển, mặc định) và "ghibli" (xanh lá dịu). Mỗi bảng có bản sáng + tối. */
+:root {
+  --ok: #047857; --ok-soft: #d9f7e8;
+  --bad: #be123c; --bad-soft: #ffe4ea;
+  --warn: #b45309; --warn-soft: #fef0cc;
+  --primary-fg: #ffffff;
+  --shadow-rgb: 20, 50, 90;
+  --surface: #ffffff;
+  /* ocean light */
+  --bg: #f3f9fe; --bg-glow: rgba(110, 193, 247, 0.20);
+  --surface-2: #eaf4fc; --fg: #14283c; --muted: #4d647b; --border: #d8e8f6;
+  --primary: #2272ba; --primary-2: #66b8f2; --primary-soft: #e3f1fc;
+  --hero-1: #2279c6; --hero-2: #46a0e6; --hero-3: #99d5f9;
+}
+:root[data-palette="ghibli"] {
+  --bg: #f6faf0; --bg-glow: rgba(150, 204, 140, 0.24);
+  --surface-2: #eef6e6; --fg: #1f3026; --muted: #56695d; --border: #dcead0;
+  --primary: #36855f; --primary-2: #86c9a1; --primary-soft: #e6f4de;
+  --hero-1: #3a8c64; --hero-2: #6dba8b; --hero-3: #c3e6ab;
+  --shadow-rgb: 40, 80, 50;
+}
+.dark {
+  --ok: #4ade80; --ok-soft: #10331f;
+  --bad: #fb7185; --bad-soft: #3b1220;
+  --warn: #fbbf24; --warn-soft: #382a0a;
+  --shadow-rgb: 0, 0, 0;
+  /* ocean dark */
+  --bg: #08131f; --bg-glow: rgba(56, 152, 236, 0.16);
+  --surface: #102236; --surface-2: #17304a; --fg: #e6f1fb; --muted: #9db5cc; --border: #25415c;
+  --primary: #5eb4f5; --primary-2: #8fcdfa; --primary-fg: #04182a; --primary-soft: #16385a;
+  --hero-1: #17609f; --hero-2: #2a86d6; --hero-3: #6ec1f7;
+}
+.dark[data-palette="ghibli"] {
+  --bg: #0d1812; --bg-glow: rgba(108, 185, 138, 0.15);
+  --surface: #15271d; --surface-2: #1d3627; --fg: #e8f3e6; --muted: #a2bba8; --border: #2b4a37;
+  --primary: #7fd0a0; --primary-2: #a8e3bf; --primary-fg: #08170f; --primary-soft: #1d4030;
+  --hero-1: #2a6b4d; --hero-2: #3f8f68; --hero-3: #86c9a1;
+}
+:root {
+  --shadow-sm: 0 1px 2px rgba(var(--shadow-rgb), 0.07), 0 2px 6px rgba(var(--shadow-rgb), 0.06);
+  --shadow-md: 0 2px 4px rgba(var(--shadow-rgb), 0.06), 0 10px 24px rgba(var(--shadow-rgb), 0.11);
+  --shadow-btn: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 6px 14px rgba(var(--shadow-rgb), 0.28);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-soft: var(--primary-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --font-sans: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+html, body, #root { min-height: 100%; }
+body {
+  background:
+    radial-gradient(900px 420px at 85% -80px, var(--bg-glow), transparent 70%),
+    radial-gradient(700px 360px at -10% 0, var(--bg-glow), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  touch-action: manipulation;
+}
+h1, h2, h3 { letter-spacing: -0.01em; text-wrap: balance; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.5; }
+input[type="checkbox"] { accent-color: var(--primary); }
+:focus-visible { outline: 3px solid var(--primary-2); outline-offset: 2px; border-radius: 8px; }
+.tabular { font-variant-numeric: tabular-nums; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.card-raised { box-shadow: var(--shadow-md); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+  min-height: 44px; padding: 0.55rem 1.1rem; border-radius: 14px;
+  font-weight: 600; font-size: 0.92rem;
+  border: 1px solid var(--border); background: var(--surface); color: var(--fg);
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+}
+.btn:hover:not(:disabled) { background: var(--surface-2); border-color: var(--primary-2); }
+.btn:active:not(:disabled) { transform: scale(0.97); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-2), var(--primary));
+  color: var(--primary-fg); border-color: transparent; box-shadow: var(--shadow-btn);
+}
+.btn-primary:hover:not(:disabled) { background: linear-gradient(135deg, var(--primary-2), var(--primary)); filter: brightness(1.07); border-color: transparent; }
+.btn-danger { color: var(--bad); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 0.4rem; min-height: 40px;
+  padding: 0.35rem 0.9rem; border-radius: 999px; font-size: 0.875rem; font-weight: 500;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  transition: all 0.18s ease;
+}
+.chip[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); font-weight: 600; }
+
+.pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.skip-link {
+  position: absolute; left: 12px; top: -60px; z-index: 100;
+  background: var(--primary); color: var(--primary-fg); padding: 10px 16px; border-radius: 12px; font-weight: 600;
+}
+.skip-link:focus { top: 12px; }
+
+/* option cards */
+.opt { transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, transform 0.12s ease; box-shadow: var(--shadow-sm); }
+.opt:hover:not(:disabled) { border-color: var(--primary-2); box-shadow: var(--shadow-md); }
+.opt:active:not(:disabled) { transform: scale(0.99); }
+
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 0.28s ease-out both; }
+@keyframes pop { 0% { transform: scale(0.96); } 60% { transform: scale(1.015); } 100% { transform: scale(1); } }
+.pop { animation: pop 0.3s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+}
