@@ -12,6 +12,16 @@ export interface HistoryItem {
   perPart: Record<number, { total: number; points: number }>
 }
 
+/** Ids in scope that have never appeared in a submitted session. */
+export function remainingIds(seen: Set<string>, parts?: Part[]): string[] {
+  return QUESTIONS.filter((q) => (!parts || parts.includes(q.part)) && !seen.has(q.id)).map((q) => q.id)
+}
+
+/** Pick up to N random never-seen question ids. */
+export function pickRemaining(n: number, seed: number, seen: Set<string>, parts?: Part[]): string[] {
+  return shuffle(remainingIds(seen, parts), rng(seed)).slice(0, n)
+}
+
 /** Pick N random question ids; weight wrong/never-seen questions higher. */
 export function pickRandom(
   n: number,

@@ -1,8 +1,8 @@
-import { ArrowRight, BookX, GraduationCap, Play, Shuffle, Sparkles, Timer } from 'lucide-react'
+import { ArrowRight, BookX, CheckCheck, GraduationCap, ListChecks, Play, RotateCcw, Shuffle, Sparkles, Timer } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { QUESTIONS } from '../data'
-import { pickRandom } from '../lib/sets'
+import { pickRandom, pickRemaining, remainingIds } from '../lib/sets'
 import { useApp } from '../store/AppContext'
 import { PART_LABEL, type Mode, type Part } from '../types'
 
@@ -10,7 +10,7 @@ const PARTS: Part[] = [1, 2, 3, 4]
 
 export default function Home() {
   const nav = useNavigate()
-  const { session, wrong, seen, startSession, settings, discardSession, history } = useApp()
+  const { session, wrong, seen, startSession, settings, discardSession, history, resetSeen } = useApp()
   const [mode, setMode] = useState<Mode>('exam')
   const [count, setCount] = useState(50)
   const [parts, setParts] = useState<Part[]>(PARTS)
@@ -18,6 +18,10 @@ export default function Home() {
   const wrongIds = Object.keys(wrong)
   const poolSize = QUESTIONS.filter((q) => parts.includes(q.part)).length
   const n = Math.min(count, poolSize)
+  const seenSet = new Set(seen)
+  const remaining = remainingIds(seenSet, parts).length
+  const nRemaining = Math.min(count, remaining)
+  const seenTotal = QUESTIONS.filter((q) => seenSet.has(q.id)).length
 
   function start(title: string, ids: string[]) {
     if (ids.length === 0) return
@@ -129,7 +133,17 @@ export default function Home() {
             className="btn btn-primary"
             onClick={() => start(`Đề ngẫu nhiên ${n} câu`, pickRandom(n, Date.now() % 2147483647, wrong, new Set(seen), parts))}
           >
-            <Shuffle size={16} /> Bắt đầu đề ngẫu nhiên {n} câu
+            <Shuffle size={16} aria-hidden="true" /> Bắt đầu đề ngẫu nhiên {n} câu
+          </button>
+          <button
+            className="btn"
+            disabled={remaining === 0}
+            onClick={() =>
+              start(`Các câu còn lại (${nRemaining} câu)`, pickRemaining(nRemaining, Date.now() % 2147483647, seenSet, parts))
+            }
+            title={remaining === 0 ? 'Bạn đã làm hết các câu trong phạm vi này' : 'Chỉ gồm các câu chưa xuất hiện trong lượt nào đã nộp'}
+          >
+            <ListChecks size={16} aria-hidden="true" /> Làm các câu còn lại ({nRemaining} câu)
           </button>
           <button
             className="btn"
@@ -151,13 +165,32 @@ export default function Home() {
             <BookX size={16} /> Ôn câu sai ({wrongIds.length})
           </button>
         </div>
+        {remaining === 0 && seenTotal > 0 && (
+          <div role="status" className="flex flex-wrap items-center gap-3 rounded-2xl bg-ok-soft px-4 py-3 text-sm">
+            <CheckCheck size={18} className="text-ok" aria-hidden="true" />
+            <span className="flex-1 font-medium">Bạn đã làm hết các câu trong phạm vi này.</span>
+            <button
+              className="btn"
+              onClick={() =>
+                confirm('Bắt đầu vòng mới? Đánh dấu “đã làm” sẽ được xóa; lịch sử và Sổ câu sai vẫn giữ nguyên.') && resetSeen()
+              }
+            >
+              <RotateCcw size={16} aria-hidden="true" /> Bắt đầu vòng mới
+            </button>
+          </div>
+        )}
         <p className="text-sm text-muted">
-          Đề ngẫu nhiên ưu tiên câu bạn chưa làm hoặc từng làm sai. Câu sai rời “Sổ câu sai” sau khi làm đúng {settings.wrongStreakToClear} lần liên tiếp.
+          “Các câu còn lại” chỉ gồm những câu chưa xuất hiện trong lượt nào bạn đã nộp. Đề ngẫu nhiên ưu tiên câu bạn chưa làm hoặc từng làm sai. Câu sai rời “Sổ câu sai” sau khi làm đúng {settings.wrongStreakToClear} lần liên tiếp.
         </p>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Đã làm" value={`${new Set(seen).size}/${QUESTIONS.length}`} hint="câu khác nhau" />
+        <Stat
+          label="Đã làm"
+          value={`${seenTotal}/${QUESTIONS.length}`}
+          hint={`còn ${QUESTIONS.length - seenTotal} câu chưa gặp`}
+          progress={seenTotal / QUESTIONS.length}
+        />
         <Stat label="Sổ câu sai" value={String(wrongIds.length)} hint="câu cần ôn lại" />
         <Stat
           label="Lượt gần nhất"
@@ -173,12 +206,24 @@ export default function Home() {
   )
 }
 
-function Stat({ label, value, hint }: { label: string; value: string; hint: string }) {
+function Stat({ label, value, hint, progress }: { label: string; value: string; hint: string; progress?: number }) {
   return (
     <div className="card p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       <p className="mt-1 text-2xl font-extrabold">{value}</p>
       <p className="truncate text-sm text-muted">{hint}</p>
+      {progress !== undefined && (
+        <div
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface2"
+          role="progressbar"
+          aria-label={label}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress * 100)}
+        >
+          <div className="h-full rounded-full bg-primary" style={{ width: `${progress * 100}%` }} />
+        </div>
+      )}
     </div>
   )
 }
