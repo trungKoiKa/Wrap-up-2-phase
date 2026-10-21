@@ -1,10 +1,43 @@
-export type Part = 1 | 2 | 3 | 4
+/** 1–4: đề giữa kỳ; 16–27: bài giảng Phase 2 (số = ngày học) */
+export type Part = 1 | 2 | 3 | 4 | 16 | 17 | 18 | 20 | 22 | 23 | 24 | 25 | 26 | 27
 
 export const PART_LABEL: Record<Part, string> = {
   1: 'Kiến thức nền tảng',
   2: 'Track 1 · Business & Product',
   3: 'Track 2 · Infra & FinOps',
   4: 'Track 3 · App Build & Agents',
+  16: 'Day 16 · Mạng nơ-ron & huấn luyện',
+  17: 'Day 17 · Kiến trúc thị giác',
+  18: 'Day 18 · 2D Perception',
+  20: 'Day 20 · Kalman & hợp nhất xác suất',
+  22: 'Day 22 · Tracking',
+  23: 'Day 23 · 3D, BEV & Sensor fusion',
+  24: 'Day 24 · Data & Annotation',
+  25: 'Day 25 · VLM & VLA',
+  26: 'Day 26 · Synthetic & Trajectory data',
+  27: 'Day 27 · Replay & Closed-loop',
+}
+
+/** Nhóm đề: mỗi nhóm là một môn/đợt ôn riêng. */
+export type Bank = 'midterm' | 'cv'
+
+export const BANK_LABEL: Record<Bank, string> = {
+  midterm: 'Giữa kỳ · AI In Action',
+  cv: 'Phase 2 · CV & Perception',
+}
+
+export const BANK_PARTS: Record<Bank, Part[]> = {
+  midterm: [1, 2, 3, 4],
+  cv: [16, 17, 18, 20, 22, 23, 24, 25, 26, 27],
+}
+
+/** Mức ưu tiên khi ôn: 1 cốt lõi (phải nắm), 2 quan trọng, 3 chi tiết/số liệu. */
+export type Prio = 1 | 2 | 3
+
+export const PRIO_LABEL: Record<Prio, string> = {
+  1: 'Cốt lõi',
+  2: 'Quan trọng',
+  3: 'Chi tiết',
 }
 
 interface Base {
@@ -12,6 +45,7 @@ interface Base {
   part: Part
   prompt: string
   explanation?: string
+  prio?: Prio
 }
 
 export interface SingleQ extends Base {
