@@ -1,27 +1,42 @@
 import { ArrowRight, BookX, CheckCheck, GraduationCap, ListChecks, Play, RotateCcw, Shuffle, Sparkles, Timer } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { QUESTIONS } from '../data'
-import { pickRandom, pickRemaining, remainingIds } from '../lib/sets'
+import { BY_ID, QUESTIONS } from '../data'
+import { inScope, pickRandom, pickRemaining, remainingIds, type Scope } from '../lib/sets'
+import { load, save } from '../lib/storage'
 import { useApp } from '../store/AppContext'
-import { PART_LABEL, type Mode, type Part } from '../types'
+import { BANK_LABEL, BANK_PARTS, PART_LABEL, PRIO_LABEL, type Bank, type Mode, type Part, type Prio } from '../types'
 
-const PARTS: Part[] = [1, 2, 3, 4]
+const BANKS: Bank[] = ['midterm', 'cv']
+const PRIOS: Prio[] = [1, 2, 3]
+
+/** bật/tắt một phần tử nhưng luôn giữ ít nhất một lựa chọn */
+function toggle<T>(cur: T[], x: T): T[] {
+  return cur.includes(x) ? (cur.length > 1 ? cur.filter((y) => y !== x) : cur) : [...cur, x]
+}
 
 export default function Home() {
   const nav = useNavigate()
   const { session, wrong, seen, startSession, settings, discardSession, history, resetSeen } = useApp()
   const [mode, setMode] = useState<Mode>('exam')
   const [count, setCount] = useState(50)
-  const [parts, setParts] = useState<Part[]>(PARTS)
+  const [bank, setBankState] = useState<Bank>(() => {
+    const b = load<Bank>('bank', 'midterm')
+    return BANKS.includes(b) ? b : 'midterm'
+  })
+  const [parts, setParts] = useState<Part[]>(BANK_PARTS[bank])
+  const [prios, setPrios] = useState<Prio[]>(PRIOS)
 
-  const wrongIds = Object.keys(wrong)
-  const poolSize = QUESTIONS.filter((q) => parts.includes(q.part)).length
+  const bankScope: Scope = { parts: BANK_PARTS[bank] }
+  const scope: Scope = { parts, prios: bank === 'cv' ? prios : undefined }
+  const bankPool = QUESTIONS.filter((q) => inScope(q, bankScope))
+  const wrongIds = Object.keys(wrong).filter((id) => BY_ID[id] && inScope(BY_ID[id], bankScope))
+  const poolSize = QUESTIONS.filter((q) => inScope(q, scope)).length
   const n = Math.min(count, poolSize)
   const seenSet = new Set(seen)
-  const remaining = remainingIds(seenSet, parts).length
+  const remaining = remainingIds(seenSet, scope).length
   const nRemaining = Math.min(count, remaining)
-  const seenTotal = QUESTIONS.filter((q) => seenSet.has(q.id)).length
+  const seenTotal = bankPool.filter((q) => seenSet.has(q.id)).length
 
   function start(title: string, ids: string[]) {
     if (ids.length === 0) return
@@ -29,8 +44,11 @@ export default function Home() {
     nav('/quiz')
   }
 
-  function togglePart(p: Part) {
-    setParts((cur) => (cur.includes(p) ? (cur.length > 1 ? cur.filter((x) => x !== p) : cur) : [...cur, p]))
+  function setBank(b: Bank) {
+    setBankState(b)
+    setParts(BANK_PARTS[b])
+    setPrios(PRIOS)
+    save('bank', b)
   }
 
   const last = history[0]
@@ -47,11 +65,12 @@ export default function Home() {
           style={{ background: 'radial-gradient(circle, #fff, transparent 70%)' }}
         />
         <p className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white">
-          <Sparkles size={13} aria-hidden="true" /> Ôn thi giữa kỳ
+          <Sparkles size={13} aria-hidden="true" /> {BANK_LABEL[bank]}
         </p>
         <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">AI In Action</h1>
         <p className="mt-2 max-w-xl text-white">
-          {QUESTIONS.length} câu hỏi · 4 phần · trắc nghiệm, đúng/sai, điền khuyết, nối cột, sắp xếp, tự luận. Chọn đáp án là biết đúng sai và hiểu vì sao.
+          {bankPool.length} câu hỏi · {BANK_PARTS[bank].length} phần · trắc nghiệm, đúng/sai, điền khuyết, nối cột, sắp xếp
+          {bank === 'midterm' ? ', tự luận' : ''}. Chọn đáp án là biết đúng sai và hiểu vì sao.
         </p>
       </section>
 
@@ -102,18 +121,49 @@ export default function Home() {
 
         <div>
           <h2 className="mb-2.5 text-base font-bold">2. Phạm vi</h2>
+          <div className="mb-3 inline-flex rounded-xl border border-line bg-surface2 p-1" role="radiogroup" aria-label="Nhóm đề">
+            {BANKS.map((b) => (
+              <button
+                key={b}
+                role="radio"
+                aria-checked={bank === b}
+                onClick={() => setBank(b)}
+                className={
+                  'rounded-lg px-3 py-1.5 text-sm font-semibold ' +
+                  (bank === b ? 'bg-surface text-primary shadow-sm' : 'text-muted hover:text-fg')
+                }
+              >
+                {BANK_LABEL[b]}
+              </button>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-2">
-            {PARTS.map((p) => (
+            {BANK_PARTS[bank].map((p) => (
               <button
                 key={p}
                 aria-pressed={parts.includes(p)}
-                onClick={() => togglePart(p)}
+                onClick={() => setParts((cur) => toggle(cur, p))}
                 className="chip"
               >
                 {PART_LABEL[p]}
               </button>
             ))}
           </div>
+          {bank === 'cv' && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-muted">Mức ưu tiên:</span>
+              {PRIOS.map((p) => (
+                <button
+                  key={p}
+                  aria-pressed={prios.includes(p)}
+                  onClick={() => setPrios((cur) => toggle(cur, p))}
+                  className="chip"
+                >
+                  {PRIO_LABEL[p]}
+                </button>
+              ))}
+            </div>
+          )}
           <label className="mt-3 flex items-center gap-3 text-sm">
             Số câu:
             <input
@@ -131,7 +181,7 @@ export default function Home() {
         <div className="flex flex-wrap gap-3">
           <button
             className="btn btn-primary"
-            onClick={() => start(`Đề ngẫu nhiên ${n} câu`, pickRandom(n, Date.now() % 2147483647, wrong, new Set(seen), parts))}
+            onClick={() => start(`Đề ngẫu nhiên ${n} câu`, pickRandom(n, Date.now() % 2147483647, wrong, seenSet, scope))}
           >
             <Shuffle size={16} aria-hidden="true" /> Bắt đầu đề ngẫu nhiên {n} câu
           </button>
@@ -139,7 +189,7 @@ export default function Home() {
             className="btn"
             disabled={remaining === 0}
             onClick={() =>
-              start(`Các câu còn lại (${nRemaining} câu)`, pickRemaining(nRemaining, Date.now() % 2147483647, seenSet, parts))
+              start(`Các câu còn lại (${nRemaining} câu)`, pickRemaining(nRemaining, Date.now() % 2147483647, seenSet, scope))
             }
             title={remaining === 0 ? 'Bạn đã làm hết các câu trong phạm vi này' : 'Chỉ gồm các câu chưa xuất hiện trong lượt nào đã nộp'}
           >
@@ -150,7 +200,7 @@ export default function Home() {
             onClick={() =>
               start(
                 'Tất cả câu trong phạm vi',
-                QUESTIONS.filter((q) => parts.includes(q.part)).map((q) => q.id),
+                QUESTIONS.filter((q) => inScope(q, scope)).map((q) => q.id),
               )
             }
           >
@@ -187,9 +237,9 @@ export default function Home() {
       <section className="grid gap-4 sm:grid-cols-3">
         <Stat
           label="Đã làm"
-          value={`${seenTotal}/${QUESTIONS.length}`}
-          hint={`còn ${QUESTIONS.length - seenTotal} câu chưa gặp`}
-          progress={seenTotal / QUESTIONS.length}
+          value={`${seenTotal}/${bankPool.length}`}
+          hint={`còn ${bankPool.length - seenTotal} câu chưa gặp`}
+          progress={bankPool.length ? seenTotal / bankPool.length : 0}
         />
         <Stat label="Sổ câu sai" value={String(wrongIds.length)} hint="câu cần ôn lại" />
         <Stat

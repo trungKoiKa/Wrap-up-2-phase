@@ -1,5 +1,5 @@
 import { QUESTIONS } from '../data'
-import type { Part, WrongEntry } from '../types'
+import type { Part, Prio, Question, WrongEntry } from '../types'
 import { rng, shuffle } from './shuffle'
 
 export interface HistoryItem {
@@ -12,14 +12,27 @@ export interface HistoryItem {
   perPart: Record<number, { total: number; points: number }>
 }
 
+/** Phạm vi ôn: các phần được chọn và (nếu có) các mức ưu tiên được chọn. */
+export interface Scope {
+  parts?: Part[]
+  prios?: Prio[]
+}
+
+/** Câu không có mức ưu tiên (đề giữa kỳ) không bị bộ lọc ưu tiên loại. */
+export function inScope(q: Question, scope?: Scope): boolean {
+  if (scope?.parts && !scope.parts.includes(q.part)) return false
+  if (scope?.prios && q.prio !== undefined && !scope.prios.includes(q.prio)) return false
+  return true
+}
+
 /** Ids in scope that have never appeared in a submitted session. */
-export function remainingIds(seen: Set<string>, parts?: Part[]): string[] {
-  return QUESTIONS.filter((q) => (!parts || parts.includes(q.part)) && !seen.has(q.id)).map((q) => q.id)
+export function remainingIds(seen: Set<string>, scope?: Scope): string[] {
+  return QUESTIONS.filter((q) => inScope(q, scope) && !seen.has(q.id)).map((q) => q.id)
 }
 
 /** Pick up to N random never-seen question ids. */
-export function pickRemaining(n: number, seed: number, seen: Set<string>, parts?: Part[]): string[] {
-  return shuffle(remainingIds(seen, parts), rng(seed)).slice(0, n)
+export function pickRemaining(n: number, seed: number, seen: Set<string>, scope?: Scope): string[] {
+  return shuffle(remainingIds(seen, scope), rng(seed)).slice(0, n)
 }
 
 /** Pick N random question ids; weight wrong/never-seen questions higher. */
@@ -28,9 +41,9 @@ export function pickRandom(
   seed: number,
   wrong: Record<string, WrongEntry>,
   seen: Set<string>,
-  parts?: Part[],
+  scope?: Scope,
 ): string[] {
-  const pool = QUESTIONS.filter((q) => !parts || parts.includes(q.part))
+  const pool = QUESTIONS.filter((q) => inScope(q, scope))
   const rand = rng(seed)
   const keyed = pool.map((q) => {
     let w = 1

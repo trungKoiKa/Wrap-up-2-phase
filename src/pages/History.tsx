@@ -25,7 +25,7 @@ export default function History() {
       <section className="card space-y-3 p-5">
         <h2 className="font-bold">Độ chính xác theo phần</h2>
         {history.length === 0 && <p className="text-muted">Chưa có dữ liệu. Hãy làm một lượt bài!</p>}
-        {[1, 2, 3, 4].map((p) => {
+        {(Object.keys(PART_LABEL).map(Number) as Part[]).map((p) => {
           const e = partStats[p]
           if (!e) return null
           const pct = Math.round((e.p / e.t) * 100)

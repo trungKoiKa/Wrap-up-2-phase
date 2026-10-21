@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { QUESTIONS } from '../data'
 import { grade } from './grading'
 import { pickRandom, pickRemaining, remainingIds } from './sets'
-import type { Question } from '../types'
+import { BANK_PARTS, type Question } from '../types'
 
 const find = (id: string) => QUESTIONS.find((q) => q.id === id) as Question
 
@@ -64,11 +64,45 @@ describe('question bank integrity', () => {
   })
 })
 
+describe('Phase 2 CV bank', () => {
+  const cv = QUESTIONS.filter((q) => BANK_PARTS.cv.includes(q.part))
+  it('every question has a priority and an explanation', () => {
+    for (const q of cv) {
+      expect(q.prio, q.id).toBeDefined()
+      expect((q.explanation ?? '').length, q.id).toBeGreaterThan(20)
+    }
+  })
+  it('ids follow d<day>-<n> and match the part', () => {
+    for (const q of cv) expect(q.id.startsWith(`d${q.part}-`), q.id).toBe(true)
+  })
+  it('options are distinct and answers are never also distractors', () => {
+    for (const q of cv) {
+      if (q.type === 'single') expect(new Set([q.answer, ...q.distractors]).size, q.id).toBe(q.distractors.length + 1)
+      if (q.type === 'multi') {
+        expect(new Set([...q.answers, ...q.distractors]).size, q.id).toBe(q.answers.length + q.distractors.length)
+        expect(q.distractors.length, q.id).toBeGreaterThan(0)
+      }
+      if (q.type === 'matching') expect(new Set(q.right).size, q.id).toBe(q.right.length)
+      if (q.type === 'fill') expect(q.answers.length, q.id).toBeGreaterThan(0)
+    }
+  })
+  it('each lecture that is present has at least 40 questions', () => {
+    const per: Record<number, number> = {}
+    for (const q of cv) per[q.part] = (per[q.part] ?? 0) + 1
+    for (const [p, n] of Object.entries(per)) expect(n, `day ${p}`).toBeGreaterThanOrEqual(40)
+  })
+  it('the priority filter narrows the pool', () => {
+    const core = remainingIds(new Set(), { parts: BANK_PARTS.cv, prios: [1] })
+    expect(core.length).toBeGreaterThan(0)
+    expect(core.every((id) => QUESTIONS.find((q) => q.id === id)!.prio === 1)).toBe(true)
+  })
+})
+
 describe('pickRemaining', () => {
   const all = QUESTIONS.map((q) => q.id)
   it('excludes seen ids and returns only the rest', () => {
     const seen = new Set(pickRandom(50, 3, {}, new Set()))
-    const rest = pickRemaining(50, 1, seen)
+    const rest = pickRemaining(all.length, 1, seen)
     expect(rest.length).toBe(all.length - seen.size)
     expect(rest.some((id) => seen.has(id))).toBe(false)
     expect(new Set(rest).size).toBe(rest.length)
@@ -80,7 +114,7 @@ describe('pickRemaining', () => {
   })
   it('returns empty when everything is seen, respects parts', () => {
     expect(pickRemaining(50, 1, new Set(all))).toEqual([])
-    expect(remainingIds(new Set(), [2]).every((id) => QUESTIONS.find((q) => q.id === id)!.part === 2)).toBe(true)
+    expect(remainingIds(new Set(), { parts: [2] }).every((id) => QUESTIONS.find((q) => q.id === id)!.part === 2)).toBe(true)
   })
 })
 

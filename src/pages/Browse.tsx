@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import AnswerKey from '../components/AnswerKey'
 import { QUESTIONS } from '../data'
 import { useApp } from '../store/AppContext'
-import { PART_LABEL, type Part } from '../types'
+import { BANK_LABEL, BANK_PARTS, PART_LABEL, PRIO_LABEL, type Bank, type Part } from '../types'
 
 const TYPE_LABEL: Record<string, string> = {
   single: 'Trắc nghiệm',
@@ -53,10 +53,14 @@ export default function Browse() {
           className="rounded-lg border border-line bg-surface px-3 py-2"
         >
           <option value={0}>Tất cả phần</option>
-          {([1, 2, 3, 4] as Part[]).map((p) => (
-            <option key={p} value={p}>
-              {PART_LABEL[p]}
-            </option>
+          {(Object.keys(BANK_PARTS) as Bank[]).map((b) => (
+            <optgroup key={b} label={BANK_LABEL[b]}>
+              {BANK_PARTS[b].map((p) => (
+                <option key={p} value={p}>
+                  {PART_LABEL[p]}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
         <label className="flex items-center gap-2 text-sm">
@@ -77,6 +81,9 @@ export default function Browse() {
             >
               <span className="mt-0.5 rounded-md bg-primary-soft px-2 py-0.5 text-xs font-bold text-primary">{q.id}</span>
               <span className="flex-1 text-sm font-medium">{q.prompt}</span>
+              {q.prio && (
+                <span className="hidden shrink-0 rounded-md bg-surface2 px-2 py-0.5 text-xs text-muted sm:inline">{PRIO_LABEL[q.prio]}</span>
+              )}
               <span className="shrink-0 rounded-md bg-surface2 px-2 py-0.5 text-xs text-muted">{TYPE_LABEL[q.type]}</span>
               {wrong[q.id] && <span className="shrink-0 rounded-md bg-bad-soft px-2 py-0.5 text-xs text-bad">sai</span>}
             </button>
