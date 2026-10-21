@@ -86,10 +86,8 @@ describe('Phase 2 CV bank', () => {
       if (q.type === 'fill') expect(q.answers.length, q.id).toBeGreaterThan(0)
     }
   })
-  it('each lecture that is present has at least 40 questions', () => {
-    const per: Record<number, number> = {}
-    for (const q of cv) per[q.part] = (per[q.part] ?? 0) + 1
-    for (const [p, n] of Object.entries(per)) expect(n, `day ${p}`).toBeGreaterThanOrEqual(40)
+  it('every lecture has at least 40 questions', () => {
+    for (const p of BANK_PARTS.cv) expect(cv.filter((q) => q.part === p).length, `day ${p}`).toBeGreaterThanOrEqual(40)
   })
   it('the priority filter narrows the pool', () => {
     const core = remainingIds(new Set(), { parts: BANK_PARTS.cv, prios: [1] })
