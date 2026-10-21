@@ -4,6 +4,7 @@ import { day17 } from './day17'
 import { day18 } from './day18'
 import { day20 } from './day20'
 import { day22 } from './day22'
+import { day23 } from './day23'
 
 /** Ngân hàng câu hỏi Phase 2 · CV & Perception, mỗi file một bài giảng. */
-export const cvQuestions: Question[] = [...day16, ...day17, ...day18, ...day20, ...day22]
+export const cvQuestions: Question[] = [...day16, ...day17, ...day18, ...day20, ...day22, ...day23]
