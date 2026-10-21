@@ -16,8 +16,8 @@ export const day25 = [
     ['16 × 16 px', '64 × 64 px', '8 × 8 px'],
     'Ước tính 1 token cho mỗi 32 × 32 px, cạnh làm tròn về bội 32: ảnh 1280 × 720 ≈ 900 token, 1920 × 1080 ≈ 2 000 token.'),
 
-  q.fill('03', 3, 'Theo ước tính 1 token/32×32 px của Qwen3-VL, ảnh 1280 × 720 cho khoảng bao nhiêu token?', ['900', '≈ 900', '~900'],
-    '1280/32 = 40, 720/32 = 22,5 → làm tròn 23 hàng: 40 × 23 = 920 ≈ 900 token. Độ phân giải, số tile và hệ số gộp đặt số token mỗi ảnh, tức chi phí và độ chi tiết.'),
+  q.fill('03', 3, 'Theo ước tính 1 token/32×32 px của Qwen3-VL, ảnh 1280 × 720 cho khoảng bao nhiêu token?', ['900', '≈ 900', '~900', '880', '920'],
+    '1280/32 = 40, 720/32 = 22,5 → làm tròn thành 22 hoặc 23 hàng: 880–920, tức ≈ 900 token. Độ phân giải, số tile và hệ số gộp đặt số token mỗi ảnh, tức chi phí và độ chi tiết.'),
 
   q.match('04', 2, 'Ghép vision encoder với đặc điểm.', [
     ['CLIP (2021)', 'Học tương phản trên cặp ảnh–văn bản; LLaVA-1.5 dùng CLIP-ViT-L-336px'],
