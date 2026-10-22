@@ -21,7 +21,8 @@ export interface Formula {
 
 export interface Lesson {
   id: string
-  part: Part
+  /** phần đề tương ứng (chỉ sổ Phase 2 có; đề giữa kỳ chia theo chủ đề, không theo buổi) */
+  part?: Part
   n: number
   title: string
   question: string
@@ -49,12 +50,15 @@ export interface Overview {
 /** [thuật ngữ, giải thích, 'i' nếu không phân biệt hoa thường, lookahead thêm (regex) nếu cần] */
 export type GlossEntry = [string, string] | [string, string, string] | [string, string, string, string]
 
+/** [thuật ngữ tiếng Việt, thuật ngữ tiếng Anh]: lần đầu trên trang hiển thị thành "English (tiếng Việt)" */
+export type VIEntry = [string, string]
+
 export interface SimUI {
   controls: HTMLElement
   fig: HTMLElement
   out: HTMLElement
   slider(o: { label: string; min: number; max: number; step: number; value: number; fmt: (v: number) => string }, cb: (v: number) => void): HTMLInputElement
-  select(label: string, options: string[], value: string, cb: (v: string) => void): void
+  select(label: string, options: string[], value: string, cb: (v: string) => void): HTMLSelectElement
   button(label: string, cb: () => void): void
   svg(w: number, h: number): SVGSVGElement
 }

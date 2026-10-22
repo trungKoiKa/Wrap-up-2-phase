@@ -214,11 +214,9 @@ export default function Home() {
           >
             <BookX size={16} /> Ôn câu sai ({wrongIds.length})
           </button>
-          {bank === 'cv' && (
-            <button className="btn" onClick={() => nav('/learn')}>
-              <GraduationCap size={16} aria-hidden="true" /> Ôn lý thuyết trước
-            </button>
-          )}
+          <button className="btn" onClick={() => nav(bank === 'cv' ? '/learn/cv' : '/learn/p1')}>
+            <GraduationCap size={16} aria-hidden="true" /> Ôn lý thuyết trước
+          </button>
         </div>
         {remaining === 0 && seenTotal > 0 && (
           <div role="status" className="flex flex-wrap items-center gap-3 rounded-2xl bg-ok-soft px-4 py-3 text-sm">

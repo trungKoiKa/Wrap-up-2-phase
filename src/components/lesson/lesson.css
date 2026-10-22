@@ -1,4 +1,4 @@
-/* Trang Ôn tập (Phase 2). Màu lấy từ token của app nên đổi theo sáng/tối và bảng màu Ocean/Ghibli. */
+/* Trang Ôn tập (sổ Phase 1 và Phase 2). Màu lấy từ token của app nên đổi theo sáng/tối và bảng màu Ocean/Ghibli. */
 .learn {
   --lmono: ui-monospace, "JetBrains Mono", Consolas, monospace;
   display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 32px; align-items: start;
@@ -16,6 +16,11 @@
 .lnav .dp { grid-column: 2; height: 3px; border-radius: 3px; background: var(--border); overflow: hidden; }
 .lnav .dp i { display: block; height: 100%; background: var(--ok); }
 .lnav .sep { height: 1px; background: var(--border); margin: 6px 10px; }
+/* chuyển giữa sổ Phase 1 và Phase 2 */
+.lbooks { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.lnav .lbooks a.lbook { grid-template-columns: 1fr; gap: 0; padding: 6px 8px; border-radius: 8px; }
+.lnav .lbooks a.lbook[aria-current="true"] { background: var(--surface); box-shadow: 0 1px 2px rgb(0 0 0 / 0.08); }
+.lnav .lbooks a.lbook .dt { font-size: 0.76rem; color: var(--muted); }
 
 /* nội dung */
 .lmain { min-width: 0; display: grid; gap: 32px; }
@@ -50,6 +55,7 @@ ol.lsteps li:not(:last-child)::after { content: ""; position: absolute; left: 13
 .concept:last-child { border-bottom: 0; }
 .concept .term { font-weight: 700; line-height: 1.35; }
 .concept .en { display: block; font: 500 0.74rem var(--lmono); color: var(--muted); margin-top: 3px; }
+.concept .vi { display: block; font-weight: 400; font-size: 0.84rem; color: var(--muted); margin-top: 3px; }
 .concept .body { display: grid; gap: 6px; }
 .lex { font-size: 0.92rem; color: var(--muted); }
 .lex b { color: var(--ok); font-weight: 600; margin-right: 4px; }
@@ -191,11 +197,49 @@ button.tk:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px
 .z-ok { background: var(--ok); opacity: 0.75; } .z-warn { background: var(--warn); opacity: 0.8; } .z-bad { background: var(--bad); opacity: 0.8; }
 .lg { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
 
+/* hình vẽ của mô phỏng Phase 1 */
+.sv-tb { fill: var(--fg); font: 600 12px var(--font-sans, system-ui); }
+.sv-tm { fill: var(--fg); font: 12px var(--font-sans, system-ui); }
+.sv-tc { fill: var(--fg); font: 500 11.5px var(--lmono); }
+.sv-box { fill: var(--surface-2); stroke: var(--border); stroke-width: 1.2; }
+.sv-on { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 2; }
+.sv-okbox { fill: var(--ok-soft); stroke: var(--ok); stroke-width: 2; }
+.sv-warnbox { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 2; }
+.sv-badbox { fill: var(--bad-soft); stroke: var(--bad); stroke-width: 2; }
+.sv-dim { opacity: 0.4; }
+.sv-arrow { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+.sv-arrow-on { stroke: var(--primary); stroke-width: 2.4; fill: none; }
+.sv-link { stroke: var(--border); stroke-width: 1.6; fill: none; }
+.sv-link-gold { stroke: var(--ok); stroke-width: 2.6; fill: none; }
+.sv-vec-a { stroke: var(--primary); stroke-width: 3; fill: none; }
+.sv-vec-b { stroke: var(--warn); stroke-width: 3; fill: none; }
+.sv-cut { stroke: var(--bad); stroke-width: 2.5; }
+.sv-gap { fill: var(--warn); fill-opacity: 0.25; stroke: var(--warn); stroke-dasharray: 4 3; }
+.sv-room { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; }
+.f-sea { fill: var(--primary); } .f-leaf { fill: var(--ok); } .f-warn { fill: var(--warn); } .f-bad { fill: var(--bad); }
+.f-line { fill: var(--border); } .f-sea-soft { fill: var(--primary-soft); } .f-leaf-soft { fill: var(--ok-soft); } .f-warn-soft { fill: var(--warn-soft); }
+.f-bad-soft { fill: var(--bad-soft); } .f-muted { fill: var(--muted); } .f-fg { fill: var(--fg); } .f-surface2 { fill: var(--surface-2); }
+.s-fg { stroke: var(--fg); stroke-width: 2; }
+.l-sea { stroke: var(--primary); stroke-width: 2; } .l-warn { stroke: var(--warn); stroke-width: 2; } .l-bad { stroke: var(--bad); stroke-width: 2; }
+.l-leaf { stroke: var(--ok); stroke-width: 2; stroke-dasharray: 6 4; } .l-muted { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 4; }
+
+/* trace của vòng ReAct */
+.rtrace { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 5px; font-size: 0.88rem; }
+.rtrace li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; padding: 6px 10px; border-radius: 8px; background: var(--surface-2); align-items: baseline; }
+.rtrace .k { font: 600 0.7rem var(--lmono); letter-spacing: 0.05em; text-transform: uppercase; }
+.rtrace .k-t { color: var(--primary); } .rtrace .k-a { color: var(--warn); } .rtrace .k-o { color: var(--ok); }
+.rtrace .k-f { color: var(--fg); } .rtrace .k-e { color: var(--bad); }
+.rtrace li.final { background: var(--ok-soft); } .rtrace li.err { background: var(--bad-soft); }
+.rtrace code { font: 500 0.82rem var(--lmono); overflow-wrap: anywhere; }
+.rtrace .empty { color: var(--muted); background: none; display: block; padding: 6px 0; }
+
 @media (max-width: 820px) {
   .learn { grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .lnav { position: static; display: flex; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
   .lnav a { grid-template-columns: auto; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); flex: none; }
   .lnav .dt, .lnav .dp, .lnav .sep { display: none; }
+  .lbooks { flex: none; margin-bottom: 0; }
+  .rtrace li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
   .lintro, .ltwo, .concept, .sim-body { grid-template-columns: minmax(0, 1fr); }
   .sim { padding: 14px; }
   .cc { width: 28px; height: 28px; font-size: 0.78rem; }
