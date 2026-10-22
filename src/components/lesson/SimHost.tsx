@@ -53,6 +53,7 @@ export default function SimHost({ id, sim, text }: { id: string; sim: SimSpec; t
         sel.addEventListener('change', () => cb(sel.value))
         lab.append(name, sel)
         ctrl.appendChild(lab)
+        return sel
       },
       button(label, cb) {
         if (!btns) {

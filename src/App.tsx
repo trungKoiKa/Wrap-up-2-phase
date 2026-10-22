@@ -8,7 +8,7 @@ import Quiz from './pages/Quiz'
 import Result from './pages/Result'
 import Settings from './pages/Settings'
 
-// Trang Ôn tập kéo theo KaTeX và nội dung 10 buổi nên tách chunk, chỉ tải khi mở
+// Trang Ôn tập kéo theo KaTeX và nội dung hai sổ (24 buổi) nên tách chunk, chỉ tải khi mở
 const Learn = lazy(() => import('./pages/Learn'))
 const learn = (
   <Suspense fallback={<p className="text-muted">Đang tải bài học…</p>}>

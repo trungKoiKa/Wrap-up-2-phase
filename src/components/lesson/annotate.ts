@@ -1,8 +1,9 @@
-import { GLOSSARY } from '../../data/lessons'
+import { BOOKS, type BookId } from '../../data/lessons'
 import type { Lesson, Overview, SimSpec } from '../../data/lessons/types'
-import { makeAnnotator, type Seg } from '../../lib/gloss'
+import { makeAnnotator, type Annotator, type Seg } from '../../lib/gloss'
 
-export const annotator = makeAnnotator(GLOSSARY)
+/** Mỗi sổ một bộ chú giải riêng (thuật ngữ và giải thích khác nhau giữa Phase 1 và Phase 2). */
+export const annotators = Object.fromEntries(BOOKS.map((b) => [b.id, makeAnnotator(b.glossary, b.vi)])) as Record<BookId, Annotator>
 
 /** Bài học sau khi chú giải: mọi đoạn văn thành Seg[], theo đúng thứ tự đọc trên trang. */
 export interface AnnotatedLesson {
@@ -23,7 +24,7 @@ export interface AnnotatedLesson {
  * Chú giải cả trang một lần (gọi trong useMemo). Một Set mới cho mỗi lần gọi nên kết quả không phụ
  * thuộc số lần React render; thứ tự gọi bên dưới chính là thứ tự các phần xuất hiện trên trang.
  */
-export function annotateLesson(d: Lesson, sim: SimSpec | undefined): AnnotatedLesson {
+export function annotateLesson(d: Lesson, sim: SimSpec | undefined, annotator: Annotator): AnnotatedLesson {
   const seen = new Set<string>()
   const a = (s: string) => annotator.annotate(s, seen)
   return {
@@ -44,7 +45,7 @@ export function annotateLesson(d: Lesson, sim: SimSpec | undefined): AnnotatedLe
   }
 }
 
-export function annotateOverview(o: Overview) {
+export function annotateOverview(o: Overview, annotator: Annotator) {
   const seen = new Set<string>()
   const a = (s: string) => annotator.annotate(s, seen)
   return { intro: a(o.intro), flow: o.flow.map((f) => a(f.text)), howto: o.howto.map(a) }

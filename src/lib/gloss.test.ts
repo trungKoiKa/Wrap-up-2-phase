@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { GLOSSARY } from '../data/lessons'
+import { BOOKS } from '../data/lessons'
 import { makeAnnotator, type Seg } from './gloss'
 
 const ann = makeAnnotator([
@@ -56,10 +56,39 @@ describe('gloss annotator', () => {
     expect(terms(ann.annotate('IoU', seen))).toEqual([])
   })
 
-  it('the real glossary compiles and has no duplicate terms', () => {
-    const real = makeAnnotator(GLOSSARY)
-    expect(() => real.annotate('backbone, BEV, NMS, log 0', new Set())).not.toThrow()
-    const keys = GLOSSARY.map((g) => g[0].toLowerCase())
-    expect(new Set(keys).size).toBe(keys.length)
+  it('keeps digits in the text (placeholders never collide with content)', () => {
+    const s = 'Giá 12 đô, IoU 0,5 và 3 hộp'
+    expect(text(ann.annotate(s, new Set()))).toBe(s)
+  })
+
+  it('the real glossaries compile and have no duplicate terms', () => {
+    for (const b of BOOKS) {
+      const real = makeAnnotator(b.glossary, b.vi)
+      expect(() => real.annotate('backbone, BEV, NMS, log 0, độ trễ, ngưỡng', new Set()), b.id).not.toThrow()
+      const keys = b.glossary.map((g) => g[0].toLowerCase())
+      expect(new Set(keys).size, b.id).toBe(keys.length)
+    }
+  })
+})
+
+describe('Vietnamese terms shown English-first', () => {
+  const vi = makeAnnotator([['latency', 'độ trễ', 'i']], [['độ trễ', 'latency'], ['ngưỡng', 'threshold']])
+
+  it('rewrites the first Vietnamese occurrence as "English (tiếng Việt)"', () => {
+    const seen = new Set<string>()
+    const segs = vi.annotate('Độ trễ cao. Giảm độ trễ đi.', seen)
+    expect(segs.filter((s) => s.k === 'term')).toEqual([{ k: 'term', v: 'Latency', def: 'độ trễ' }])
+    expect(text(segs)).toBe('Latency cao. Giảm độ trễ đi.')
+  })
+
+  it('shares "seen" with the English term so it is explained only once', () => {
+    const seen = new Set<string>()
+    vi.annotate('latency thấp', seen)
+    expect(terms(vi.annotate('độ trễ', seen))).toEqual([])
+  })
+
+  it('does not rewrite inside a longer word or when already explained', () => {
+    expect(terms(vi.annotate('ngưỡng (threshold) mặc định', new Set()))).toEqual([])
+    expect(terms(vi.annotate('ngưỡngX', new Set()))).toEqual([])
   })
 })

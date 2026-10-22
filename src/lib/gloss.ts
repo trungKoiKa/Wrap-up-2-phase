@@ -1,32 +1,39 @@
-import type { GlossEntry } from '../data/lessons/types'
+import type { GlossEntry, VIEntry } from '../data/lessons/types'
 
 /** Một mẩu văn bản sau khi chú giải: chữ thường, thuật ngữ kèm giải thích, hoặc công thức inline. */
 export type Seg = { k: 'text'; v: string } | { k: 'term'; v: string; def: string } | { k: 'math'; tex: string }
 
 interface Rule {
   key: string
-  def: string
   re: RegExp
+  /** chú giải tiếng Anh → giải thích */
+  def?: string
+  /** thuật ngữ tiếng Việt → đổi thành tiếng Anh này, tiếng Việt vào ngoặc */
+  en?: string
 }
+
+const quote = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /**
  * Chú giải thuật ngữ: lần đầu một thuật ngữ xuất hiện trên trang thì gắn kèm giải thích ngắn.
  * - thuật ngữ dài khớp trước (ví dụ "focal loss" trước "loss");
  * - bỏ qua nếu ngay trước là "(" hoặc ngay sau là "(" (văn bản đã tự giải thích);
- * - "$...$" là công thức inline, không chú giải bên trong.
+ * - "$...$" là công thức inline, không chú giải bên trong;
+ * - `vi`: thuật ngữ đang viết bằng tiếng Việt thì lần đầu hiển thị thành "English (tiếng Việt)".
  * `seen` là tập thuật ngữ đã giải thích trên trang hiện tại, truyền theo thứ tự đọc.
  */
-export function makeAnnotator(entries: GlossEntry[]) {
-  const rules: Rule[] = entries
-    .map(([term, def, flags, look]) => {
-      const q = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-      return {
-        key: term.toLowerCase(),
-        def,
-        re: new RegExp('(?<![\\p{L}\\p{N}_\\-./])' + q + '(?![\\p{L}\\p{N}_])' + (look ?? ''), 'gu' + (flags === 'i' ? 'i' : '')),
-      }
-    })
+export function makeAnnotator(entries: GlossEntry[], vi: VIEntry[] = []) {
+  const viRules: Rule[] = vi
+    .map(([v, en]) => ({ key: en.toLowerCase(), en, len: v.length, re: new RegExp('(?<![\\p{L}\\p{N}_])' + quote(v) + '(?![\\p{L}\\p{N}_])', 'giu') }))
+    .sort((a, b) => b.len - a.len)
+  const enRules: Rule[] = entries
+    .map(([term, def, flags, look]) => ({
+      key: term.toLowerCase(),
+      def,
+      re: new RegExp('(?<![\\p{L}\\p{N}_\\-./])' + quote(term) + '(?![\\p{L}\\p{N}_])' + (look ?? ''), 'gu' + (flags === 'i' ? 'i' : '')),
+    }))
     .sort((a, b) => b.key.length - a.key.length)
+  const rules = [...viRules, ...enRules]
 
   function annotateText(text: string, seen: Set<string>): Seg[] {
     // thay mỗi chỗ khớp bằng ký hiệu giữ chỗ để thuật ngữ ngắn không khớp lại vào bên trong thuật ngữ dài
@@ -41,7 +48,10 @@ export function makeAnnotator(entries: GlossEntry[]) {
         if (seen.has(r.key) || /^\s?\(/.test(after) || before === '(') holes.push({ k: 'text', v: m })
         else {
           seen.add(r.key)
-          holes.push({ k: 'term', v: m, def: r.def })
+          if (r.en) {
+            const upper = m.charAt(0) !== m.charAt(0).toLowerCase()
+            holes.push({ k: 'term', v: upper ? r.en.charAt(0).toUpperCase() + r.en.slice(1) : r.en, def: m.toLowerCase() })
+          } else holes.push({ k: 'term', v: m, def: r.def! })
         }
         // ký tự vùng dùng riêng (U+E000/U+E001) không xuất hiện trong nội dung bài học
         return '' + (holes.length - 1) + ''
@@ -70,3 +80,5 @@ export function makeAnnotator(entries: GlossEntry[]) {
     },
   }
 }
+
+export type Annotator = ReturnType<typeof makeAnnotator>

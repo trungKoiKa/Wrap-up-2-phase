@@ -209,7 +209,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setSeen([])
       },
       resetAll: () => {
-        for (const k of ['session', 'last', 'history', 'wrong', 'seen', 'lessonKnown']) remove(k)
+        for (const k of ['session', 'last', 'history', 'wrong', 'seen', 'lessonKnown', 'learnBook']) remove(k)
         setSession(null)
         setLastResult(null)
         setHistory([])

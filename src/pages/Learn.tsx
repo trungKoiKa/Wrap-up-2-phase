@@ -3,26 +3,44 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import FlashCards from '../components/lesson/FlashCards'
 import '../components/lesson/lesson.css'
-import { annotateLesson, annotateOverview } from '../components/lesson/annotate'
+import { annotateLesson, annotateOverview, annotators } from '../components/lesson/annotate'
 import Rich from '../components/lesson/Rich'
 import SimHost from '../components/lesson/SimHost'
 import Tex from '../components/lesson/Tex'
-import { LESSON_BY_ID, LESSONS, OVERVIEW, type Lesson } from '../data/lessons'
-import { SIMS } from '../lessons/sims.js'
+import { BOOK_BY_ID, BOOK_OF_LESSON, BOOKS, LESSON_BY_ID, type Book, type BookId, type Lesson } from '../data/lessons'
+import type { Concept } from '../data/lessons/types'
+import { SIMS as SIMS_CV } from '../lessons/sims.js'
+import { SIMS as SIMS_P1 } from '../lessons/sims-p1.js'
 import { QUESTIONS } from '../data'
 import { load, save } from '../lib/storage'
 import { useApp } from '../store/AppContext'
 
 type Known = Record<string, boolean>
 
+/** id bài học là duy nhất giữa hai sổ nên gộp chung một bảng mô phỏng */
+const SIMS = { ...SIMS_CV, ...SIMS_P1 }
+
+function isBookId(x: unknown): x is BookId {
+  return typeof x === 'string' && x in BOOK_BY_ID
+}
+
 export default function Learn() {
   const { day } = useParams()
   const lesson = day ? LESSON_BY_ID[day] : undefined
+  const [lastBook] = useState<BookId>(() => {
+    const b = load<string>('learnBook', 'p1')
+    return isBookId(b) ? b : 'p1'
+  })
+  const book = lesson ? BOOK_OF_LESSON[lesson.id] : isBookId(day) ? BOOK_BY_ID[day] : BOOK_BY_ID[lastBook]
   const [known, setKnown] = useState<Known>(() => load<Known>('lessonKnown', {}))
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
   }, [day])
+
+  useEffect(() => {
+    save('learnBook', book.id)
+  }, [book.id])
 
   function toggleKnown(key: string) {
     setKnown((k) => {
@@ -36,8 +54,10 @@ export default function Learn() {
 
   return (
     <div className="learn">
-      <LessonNav current={lesson?.id} known={known} />
-      <div className="lmain">{lesson ? <Day key={lesson.id} d={lesson} known={known} onToggleKnown={toggleKnown} /> : <OverviewPage />}</div>
+      <LessonNav book={book} current={lesson?.id} known={known} />
+      <div className="lmain">
+        {lesson ? <Day key={lesson.id} d={lesson} book={book} known={known} onToggleKnown={toggleKnown} /> : <OverviewPage key={book.id} book={book} />}
+      </div>
     </div>
   )
 }
@@ -46,15 +66,23 @@ function knownCount(d: Lesson, known: Known) {
   return d.cards.filter((_, i) => known[`${d.id}:${i}`]).length
 }
 
-function LessonNav({ current, known }: { current?: string; known: Known }) {
+function LessonNav({ book, current, known }: { book: Book; current?: string; known: Known }) {
   return (
     <nav className="lnav" aria-label="Mục lục ôn tập">
-      <Link to="/learn" aria-current={!current ? 'page' : undefined}>
+      <div className="lbooks" role="group" aria-label="Chọn sổ ôn">
+        {BOOKS.map((b) => (
+          <Link key={b.id} to={`/learn/${b.id}`} aria-current={b.id === book.id ? 'true' : undefined} className="lbook">
+            <span className="dn">{b.tab}</span>
+            <span className="dt">{b.name}</span>
+          </Link>
+        ))}
+      </div>
+      <Link to={`/learn/${book.id}`} aria-current={!current ? 'page' : undefined}>
         <span className="dn">Bắt đầu</span>
         <span className="dt">Tổng quan & thuật ngữ</span>
       </Link>
       <div className="sep" />
-      {LESSONS.map((d) => {
+      {book.lessons.map((d) => {
         const k = knownCount(d, known)
         return (
           <Link key={d.id} to={`/learn/${d.id}`} aria-current={current === d.id ? 'page' : undefined}>
@@ -70,13 +98,16 @@ function LessonNav({ current, known }: { current?: string; known: Known }) {
   )
 }
 
-function OverviewPage() {
-  const a = useMemo(() => annotateOverview(OVERVIEW), [])
+function OverviewPage({ book }: { book: Book }) {
+  const a = useMemo(() => annotateOverview(book.overview, annotators[book.id]), [book])
+  const first = book.lessons[0]
   return (
     <>
       <div className="lhead">
-        <span className="kick">Bắt đầu từ đây</span>
-        <h2>Mười buổi, một chiếc xe biết nhìn</h2>
+        <span className="kick">
+          {book.tab} · {book.name} · Bắt đầu từ đây
+        </span>
+        <h2>{book.heading}</h2>
         <p className="lead">
           <Rich segs={a.intro} />
         </p>
@@ -86,7 +117,7 @@ function OverviewPage() {
           Đọc theo thứ tự này <small>bấm vào một buổi để mở</small>
         </h3>
         <ol className="lflow">
-          {OVERVIEW.flow.map((f, i) => {
+          {book.overview.flow.map((f, i) => {
             const d = LESSON_BY_ID[f.day]
             return (
               <li key={f.day}>
@@ -122,16 +153,25 @@ function OverviewPage() {
           <table>
             <thead>
               <tr>
-                <th>Tiếng Việt</th>
-                <th>Tiếng Anh</th>
+                {book.enFirst ? (
+                  <>
+                    <th>Tiếng Anh</th>
+                    <th>Tiếng Việt</th>
+                  </>
+                ) : (
+                  <>
+                    <th>Tiếng Việt</th>
+                    <th>Tiếng Anh</th>
+                  </>
+                )}
                 <th>Hiểu nhanh</th>
               </tr>
             </thead>
             <tbody>
-              {OVERVIEW.glossary.map((g) => (
+              {book.overview.glossary.map((g) => (
                 <tr key={g[0]}>
-                  <td>{g[0]}</td>
-                  <td>{g[1]}</td>
+                  <td>{book.enFirst ? g[1] : g[0]}</td>
+                  <td>{book.enFirst ? g[0] : g[1]}</td>
                   <td>{g[2]}</td>
                 </tr>
               ))}
@@ -141,19 +181,37 @@ function OverviewPage() {
       </section>
       <div className="lpager">
         <span />
-        <Link className="btn" to={`/learn/${LESSONS[0].id}`}>
-          Bắt đầu với Day {LESSONS[0].n} · {LESSONS[0].title} <ArrowRight size={16} aria-hidden="true" />
+        <Link className="btn" to={`/learn/${first.id}`}>
+          Bắt đầu với Day {first.n} · {first.title} <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </div>
     </>
   )
 }
 
-/** Cuối buổi: mở ngay một lượt luyện tập chỉ gồm câu hỏi của buổi này. */
+/** Tên khái niệm: sổ Phase 1 để tiếng Anh trước (tiếng Việt bên dưới), sổ Phase 2 giữ như cũ. */
+function ConceptTerm({ c, enFirst }: { c: Concept; enFirst: boolean }) {
+  if (!enFirst)
+    return (
+      <div className="term">
+        {c.t}
+        <span className="en">{c.en}</span>
+      </div>
+    )
+  const head = c.en.charAt(0).toUpperCase() + c.en.slice(1)
+  return (
+    <div className="term">
+      {head}
+      {c.t.toLowerCase() !== c.en.toLowerCase() && <span className="vi">{c.t}</span>}
+    </div>
+  )
+}
+
+/** Cuối buổi: mở ngay một lượt luyện tập chỉ gồm câu hỏi của buổi này (chỉ sổ có đề theo buổi). */
 function PracticeDay({ d }: { d: Lesson }) {
   const nav = useNavigate()
   const { session, startSession } = useApp()
-  const ids = QUESTIONS.filter((q) => q.part === d.part).map((q) => q.id)
+  const ids = d.part ? QUESTIONS.filter((q) => q.part === d.part).map((q) => q.id) : []
   if (!ids.length) return null
 
   function start() {
@@ -177,17 +235,19 @@ function PracticeDay({ d }: { d: Lesson }) {
   )
 }
 
-function Day({ d, known, onToggleKnown }: { d: Lesson; known: Known; onToggleKnown: (key: string) => void }) {
+function Day({ d, book, known, onToggleKnown }: { d: Lesson; book: Book; known: Known; onToggleKnown: (key: string) => void }) {
   const sim = SIMS[d.id]
-  const a = useMemo(() => annotateLesson(d, sim), [d, sim])
-  const idx = LESSONS.indexOf(d)
-  const prev = LESSONS[idx - 1]
-  const next = LESSONS[idx + 1]
+  const a = useMemo(() => annotateLesson(d, sim, annotators[book.id]), [d, sim, book])
+  const idx = book.lessons.indexOf(d)
+  const prev = book.lessons[idx - 1]
+  const next = book.lessons[idx + 1]
 
   return (
     <>
       <div className="lhead">
-        <span className="kick">Day {d.n}</span>
+        <span className="kick">
+          {book.tab} · Day {d.n}
+        </span>
         <h2>{d.title}</h2>
         <p className="lquestion">
           <b>Câu hỏi của buổi</b>
@@ -230,10 +290,7 @@ function Day({ d, known, onToggleKnown }: { d: Lesson; known: Known; onToggleKno
         <div className="concepts">
           {d.concepts.map((c, i) => (
             <div className="concept" key={c.t}>
-              <div className="term">
-                {c.t}
-                <span className="en">{c.en}</span>
-              </div>
+              <ConceptTerm c={c} enFirst={book.enFirst} />
               <div className="body">
                 <p>
                   <Rich segs={a.concepts[i].d} />
@@ -257,26 +314,28 @@ function Day({ d, known, onToggleKnown }: { d: Lesson; known: Known; onToggleKno
         </section>
       )}
 
-      <section className="lsec">
-        <h3>
-          Công thức <small>đọc dòng "Đọc là" trước, rồi mới nhìn ký hiệu</small>
-        </h3>
-        <div className="formulas">
-          {d.formulas.map((f, i) => (
-            <div className="formula" key={i}>
-              <Tex tex={f.tex} display />
-              <p className="read">
-                <b>Đọc là</b>
-                <Rich segs={a.formulas[i].read} />
-              </p>
-              <p className="lex">
-                <b>Ví dụ</b>
-                <Rich segs={a.formulas[i].ex} />
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {d.formulas.length > 0 && (
+        <section className="lsec">
+          <h3>
+            Công thức & con số <small>đọc dòng "Đọc là" trước, rồi mới nhìn ký hiệu</small>
+          </h3>
+          <div className="formulas">
+            {d.formulas.map((f, i) => (
+              <div className="formula" key={i}>
+                <Tex tex={f.tex} display />
+                <p className="read">
+                  <b>Đọc là</b>
+                  <Rich segs={a.formulas[i].read} />
+                </p>
+                <p className="lex">
+                  <b>Ví dụ</b>
+                  <Rich segs={a.formulas[i].ex} />
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="lsec">
         <h3>{d.table.title}</h3>
@@ -337,7 +396,7 @@ function Day({ d, known, onToggleKnown }: { d: Lesson; known: Known; onToggleKno
             <ArrowLeft size={16} aria-hidden="true" /> Day {prev.n} · {prev.title}
           </Link>
         ) : (
-          <Link className="btn" to="/learn">
+          <Link className="btn" to={`/learn/${book.id}`}>
             <ArrowLeft size={16} aria-hidden="true" /> Tổng quan
           </Link>
         )}
