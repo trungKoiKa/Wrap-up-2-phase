@@ -1,6 +1,6 @@
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, PenLine } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import FlashCards from '../components/lesson/FlashCards'
 import '../components/lesson/lesson.css'
 import { annotateLesson, annotateOverview } from '../components/lesson/annotate'
@@ -9,7 +9,9 @@ import SimHost from '../components/lesson/SimHost'
 import Tex from '../components/lesson/Tex'
 import { LESSON_BY_ID, LESSONS, OVERVIEW, type Lesson } from '../data/lessons'
 import { SIMS } from '../lessons/sims.js'
+import { QUESTIONS } from '../data'
 import { load, save } from '../lib/storage'
+import { useApp } from '../store/AppContext'
 
 type Known = Record<string, boolean>
 
@@ -144,6 +146,34 @@ function OverviewPage() {
         </Link>
       </div>
     </>
+  )
+}
+
+/** Cuối buổi: mở ngay một lượt luyện tập chỉ gồm câu hỏi của buổi này. */
+function PracticeDay({ d }: { d: Lesson }) {
+  const nav = useNavigate()
+  const { session, startSession } = useApp()
+  const ids = QUESTIONS.filter((q) => q.part === d.part).map((q) => q.id)
+  if (!ids.length) return null
+
+  function start() {
+    if (session && !confirm(`Bạn đang làm dở "${session.title}". Bỏ lượt đó để làm đề Day ${d.n}?`)) return
+    startSession(`Ôn Day ${d.n} · ${d.title}`, ids, 'practice')
+    nav('/quiz')
+  }
+
+  return (
+    <section className="lpractice">
+      <div>
+        <h3>Luyện đề buổi này</h3>
+        <p>
+          {ids.length} câu trắc nghiệm, đúng/sai, điền khuyết, nối cột, sắp xếp về Day {d.n}. Chế độ luyện tập: chọn đáp án là biết đúng sai kèm giải thích.
+        </p>
+      </div>
+      <button className="btn btn-primary" onClick={start}>
+        <PenLine size={16} aria-hidden="true" /> Làm đề Day {d.n} ({ids.length} câu)
+      </button>
+    </section>
   )
 }
 
@@ -298,6 +328,8 @@ function Day({ d, known, onToggleKnown }: { d: Lesson; known: Known; onToggleKno
       </div>
 
       <FlashCards id={d.id} cards={a.cards} known={known} onToggleKnown={onToggleKnown} />
+
+      <PracticeDay d={d} />
 
       <div className="lpager">
         {prev ? (
