@@ -1,11 +1,11 @@
 import { CheckCircle2, ChevronLeft, ChevronRight, Flag, Lightbulb, Pause, Play, Send, XCircle } from 'lucide-react'
 import { useCallback, useEffect, useRef } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import QuestionView from '../components/QuestionView'
 import { BY_ID, sourceLabel } from '../data'
 import { grade, isAnswered } from '../lib/grading'
 import { useApp } from '../store/AppContext'
-import { PART_LABEL, PRIO_LABEL } from '../types'
+import { BANK_PARTS, PART_LABEL, PRIO_LABEL } from '../types'
 
 export function fmt(ms: number) {
   const s = Math.max(0, Math.floor(ms / 1000))
@@ -151,6 +151,11 @@ export default function Quiz() {
               <span className="mt-1 text-xs text-muted">
                 {PART_LABEL[q.part]} · {sourceLabel(q)}
                 {q.prio && <span className="ml-2 rounded-md bg-surface2 px-1.5 py-0.5">{PRIO_LABEL[q.prio]}</span>}
+                {BANK_PARTS.cv.includes(q.part) && (
+                  <Link to={`/learn/day${q.part}`} className="ml-2 font-semibold text-primary hover:underline">
+                    Xem lại bài Day {q.part}
+                  </Link>
+                )}
               </span>
               <button
                 className={'ml-auto btn !px-2.5 ' + (session.flagged.includes(id) ? '!border-warn !bg-warn-soft text-warn' : '')}
