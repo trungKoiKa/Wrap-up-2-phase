@@ -2,6 +2,7 @@ import katex from 'katex'
 import { describe, expect, it } from 'vitest'
 import { SIMS as SIMS_CV } from '../../lessons/sims.js'
 import { SIMS as SIMS_P1 } from '../../lessons/sims-p1.js'
+import { annotateLesson, annotators } from '../../components/lesson/annotate'
 import { BANK_PARTS } from '../../types'
 import { BOOK_BY_ID, BOOK_OF_LESSON, BOOKS, LESSON_BY_ID, LESSONS } from './index'
 
@@ -45,7 +46,19 @@ describe('lesson books', () => {
       it('every formula renders with KaTeX', () => {
         const all = book.lessons.flatMap((d) => [
           ...d.formulas.map((f) => [d.id, f.tex, true] as const),
-          ...[d.question, d.analogy, d.why, ...d.steps, ...d.traps, ...d.remember, ...d.table.rows.flat(), ...d.cards.flat()]
+          ...[
+            d.question,
+            d.analogy,
+            d.why,
+            ...d.steps,
+            ...d.traps,
+            ...(d.deepTraps ?? []),
+            ...d.remember,
+            ...d.table.rows.flat(),
+            ...d.cards.flat(),
+            ...(d.prereq ?? []).map((p) => p.d),
+            ...(d.map?.stages ?? []).flatMap((s) => [s.does, s.eg]),
+          ]
             .flatMap(inlineTex)
             .map((t) => [d.id, t, false] as const),
         ])
@@ -61,6 +74,30 @@ describe('lesson books', () => {
           expect(s, d.id).toBeDefined()
           expect(s.tries.length, d.id).toBeGreaterThan(0)
           expect(typeof s.build, d.id).toBe('function')
+        }
+      })
+
+      it('map, prerequisites and deep-dive parts are consistent', () => {
+        for (const d of book.lessons) {
+          const stages = new Set(d.map?.stages.map((s) => s.k))
+          for (const c of d.concepts) if (c.stage) expect(stages.has(c.stage), `${d.id} ${c.t} → ${c.stage}`).toBe(true)
+          // bỏ hết phần Đào sâu vẫn còn đủ để học: ít nhất 5 khái niệm cốt lõi
+          expect(d.concepts.filter((c) => !c.deep).length, d.id).toBeGreaterThanOrEqual(5)
+          for (const p of d.prereq ?? []) {
+            expect(BOOK_OF_LESSON[p.day]?.id, `${d.id} prereq ${p.day}`).toBe(book.id)
+            expect(LESSON_BY_ID[p.day].n, `${d.id} prereq ${p.day}`).toBeLessThan(d.n)
+          }
+          for (const s of d.map?.stages ?? []) if (s.next) expect(LESSON_BY_ID[s.next].n, `${d.id} next ${s.next}`).toBeGreaterThan(d.n)
+          if (d.map) expect(d.thread, d.id).toBeDefined()
+        }
+      })
+
+      it('every annotated lesson keeps one entry per concept and formula', () => {
+        for (const d of book.lessons) {
+          const a = annotateLesson(d, SIMS[d.id], annotators[book.id])
+          expect(Object.keys(a.concepts).length, d.id).toBe(d.concepts.length)
+          expect(Object.keys(a.formulas).length, d.id).toBe(d.formulas.length)
+          expect(a.rows, d.id).toHaveLength(d.table.rows.length)
         }
       })
 

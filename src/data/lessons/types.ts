@@ -9,6 +9,10 @@ export interface Concept {
   d: string
   /** ví dụ cụ thể */
   ex: string
+  /** khâu trên bản đồ của buổi (`MapStage.k`) mà khái niệm thuộc về */
+  stage?: string
+  /** chi tiết công cụ / tham số: hiện trong phần "Đào sâu" thu gọn */
+  deep?: boolean
 }
 
 export interface Formula {
@@ -17,6 +21,32 @@ export interface Formula {
   /** đọc công thức bằng lời */
   read: string
   ex: string
+  deep?: boolean
+}
+
+/** Khái niệm của buổi trước cần nắm trước khi đọc buổi này. */
+export interface Prereq {
+  /** id buổi để mở lại */
+  day: string
+  t: string
+  d: string
+}
+
+/** Một khâu trên bản đồ của buổi: tên tiếng Anh, tiếng Việt, việc làm, ví dụ trên ví dụ xuyên suốt. */
+export interface MapStage {
+  k: string
+  en: string
+  vi: string
+  does: string
+  eg: string
+  /** buổi học kỹ khâu này */
+  next?: string
+}
+
+export interface LessonMap {
+  title: string
+  note: string
+  stages: MapStage[]
 }
 
 export interface Lesson {
@@ -26,14 +56,21 @@ export interface Lesson {
   n: number
   title: string
   question: string
+  prereq?: Prereq[]
   analogy: string
   why: string
+  /** ví dụ xuyên suốt nhiều buổi (sổ Phase 1 từ Day 7: ShopBot) */
+  thread?: { name: string; text: string }
+  /** bản đồ các khâu; có thì hiện thay cho `steps` */
+  map?: LessonMap
   steps: string[]
   concepts: Concept[]
   formulas: Formula[]
   /** ô bảng có thể chứa công thức inline "$...$" */
-  table: { title: string; cols: string[]; rows: string[][] }
+  table: { title: string; cols: string[]; rows: string[][]; deep?: boolean }
   traps: string[]
+  /** bẫy khi dùng công cụ cụ thể, nằm trong phần "Đào sâu" */
+  deepTraps?: string[]
   remember: string[]
   /** [câu hỏi, đáp án] */
   cards: [string, string][]

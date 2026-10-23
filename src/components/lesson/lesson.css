@@ -222,6 +222,43 @@ button.tk:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px
 .s-fg { stroke: var(--fg); stroke-width: 2; }
 .l-sea { stroke: var(--primary); stroke-width: 2; } .l-warn { stroke: var(--warn); stroke-width: 2; } .l-bad { stroke: var(--bad); stroke-width: 2; }
 .l-leaf { stroke: var(--ok); stroke-width: 2; stroke-dasharray: 6 4; } .l-muted { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 4; }
+/* Cần biết trước: ôn nhanh khái niệm buổi cũ, bấm để mở lại buổi đó */
+.lprereq { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 8px; }
+.lprereq a { display: grid; gap: 3px; align-content: start; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 0.9rem; color: var(--fg); }
+.lprereq a:hover { border-color: var(--primary); }
+.lprereq .pd { font: 600 0.72rem var(--lmono); color: var(--primary); }
+.lprereq .pt { font-weight: 600; }
+.lprereq .px { color: var(--muted); }
+
+/* Ví dụ xuyên suốt nhiều buổi */
+.lthread { border-left: 4px solid var(--ok); background: var(--surface); border-radius: 0 14px 14px 0; padding: 14px 18px; display: grid; gap: 6px; }
+.lthread .lbl { color: var(--ok); }
+
+/* Bản đồ các khâu của buổi */
+.lmap-title { font: 600 0.92rem var(--lmono); color: var(--primary); overflow-wrap: anywhere; }
+ol.lmap { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 10px; counter-reset: m; }
+ol.lmap li { counter-increment: m; background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--primary); border-radius: 12px; padding: 10px 12px; display: grid; gap: 5px; align-content: start; min-width: 0; }
+ol.lmap .mh { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+ol.lmap .mh::before { content: counter(m); font: 600 0.78rem var(--lmono); color: var(--primary); }
+ol.lmap .me { font-weight: 700; }
+ol.lmap .mv { font-size: 0.82rem; color: var(--muted); }
+ol.lmap .md { font-size: 0.88rem; }
+ol.lmap .mx { font-size: 0.84rem; background: var(--ok-soft); border-radius: 8px; padding: 6px 8px; }
+ol.lmap .mx b { color: var(--ok); font-weight: 600; margin-right: 4px; }
+ol.lmap .btn { justify-self: start; font-size: 0.82rem; padding: 4px 10px; }
+
+.ltier { font: 600 0.74rem var(--lmono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
+.lstage { display: inline-block; margin-bottom: 6px; font: 600 0.7rem var(--lmono); color: var(--primary); background: var(--primary-soft); border-radius: 6px; padding: 2px 7px; }
+
+/* Đào sâu: thu gọn mặc định */
+details.ldeep, details.ldeep .ldeep-body > div { min-width: 0; }
+details.ldeep { border: 1px dashed var(--border); border-radius: 16px; background: var(--surface-2); padding: 0 18px; }
+details.ldeep[open] { padding-bottom: 18px; }
+details.ldeep > summary { cursor: pointer; padding: 14px 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+details.ldeep > summary b { font-size: 1.08rem; font-weight: 700; }
+details.ldeep > summary small { color: var(--muted); font-size: 0.86rem; }
+.ldeep-body { display: grid; gap: 22px; }
+.ldeep-body h4 { margin: 0 0 10px; font-size: 1rem; font-weight: 700; }
 
 /* trace của vòng ReAct */
 .rtrace { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 5px; font-size: 0.88rem; }
