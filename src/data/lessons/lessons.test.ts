@@ -1,6 +1,6 @@
 import katex from 'katex'
 import { describe, expect, it } from 'vitest'
-import { SIMS as SIMS_CV } from '../../lessons/sims.js'
+import { FIGS, SIMS as SIMS_CV } from '../../lessons/sims.js'
 import { SIMS as SIMS_P1 } from '../../lessons/sims-p1.js'
 import { annotateLesson, annotators, simList } from '../../components/lesson/annotate'
 import { BANK_PARTS } from '../../types'
@@ -101,6 +101,15 @@ describe('lesson books', () => {
           expect(Object.keys(a.formulas).length, d.id).toBe(d.formulas.length)
           expect(a.rows, d.id).toHaveLength(d.table.rows.length)
         }
+      })
+
+      it('every concept figure exists and draws an SVG', () => {
+        for (const d of book.lessons)
+          for (const c of d.concepts.filter((x) => x.fig)) {
+            const f = FIGS[c.fig!]
+            expect(typeof f, `${d.id} ${c.fig}`).toBe('function')
+            expect(f().startsWith('<svg'), `${d.id} ${c.fig}`).toBe(true)
+          }
       })
 
       it('overview links to lessons of the same book', () => {

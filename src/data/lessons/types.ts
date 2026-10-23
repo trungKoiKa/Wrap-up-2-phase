@@ -13,6 +13,9 @@ export interface Concept {
   stage?: string
   /** chi tiết công cụ / tham số: hiện trong phần "Đào sâu" thu gọn */
   deep?: boolean
+  /** hình minh hoạ tĩnh (khoá trong FIGS của sổ) và chú thích của nó */
+  fig?: string
+  figCap?: string
 }
 
 export interface Formula {

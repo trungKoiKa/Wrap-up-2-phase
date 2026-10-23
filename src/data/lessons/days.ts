@@ -957,70 +957,100 @@ export const DAYS: Lesson[] = [
     ],
     "concepts": [
       {
-        "t": "Một điểm LiDAR",
-        "en": "point fields: x, y, z · intensity · ring · time offset",
+        "t": "Point fields (các trường của một điểm LiDAR)",
+        "en": "x, y, z · intensity · ring · time offset",
         "d": "Mỗi điểm không chỉ có tọa độ. Intensity cho biết độ phản xạ của vật liệu; ring cho biết tia laser nào tạo ra điểm; time offset là thời điểm của điểm trong một vòng quét, cần để bù chuyển động; return type cho biết phản xạ đầu, mạnh nhất hay cuối.",
         "ex": "Thiếu cả một ring → nghi tia hỏng hoặc mưa sương; thiếu time offset → không deskew được khi xe quay nhanh."
       },
       {
-        "t": "Hệ trục và phép biến đổi",
-        "en": "coordinate frames · T_camera_lidar",
+        "t": "Coordinate frames (hệ trục và phép biến đổi)",
+        "en": "T_camera_lidar · T_ego_sensor",
+        "fig": "frames",
+        "figCap": "LiDAR và camera dùng trục khác nhau; mọi thứ phải về cùng một hệ, cùng đơn vị trước khi học.",
         "d": "LiDAR, camera, IMU, xe (ego) và bản đồ có trục khác nhau. Camera thường x phải, y xuống, z tới trước; LiDAR tùy driver và dataset. Mọi thứ phải về cùng một hệ, cùng đơn vị mét và radian, trước khi học.",
         "ex": "Test 5 phút: một điểm cách xe 10 m phía trước, sau biến đổi phải vẫn ở phía trước; chiếu lên camera phải nằm trong ảnh và có độ sâu dương."
       },
       {
-        "t": "Tiền xử lý",
+        "t": "Preprocessing (tiền xử lý)",
         "en": "crop · deskew · multi-sweep · voxelize",
         "d": "Cắt vùng theo tầm nhìn, bỏ NaN/Inf, bù chuyển động theo time offset, có thể bỏ mặt đường, gộp 2–10 lần quét, rồi chia voxel. Mỗi bước là một đánh đổi giữa độ trễ, khả năng thấy vật nhỏ và bộ nhớ.",
         "ex": "Cắt quá hẹp → bỏ sót người đi bộ ở rìa. Không deskew → xe quay nhanh làm vật bị kéo dài. Gộp nhiều lần quét mà sai pose → vật ma, vật nhân đôi."
       },
       {
-        "t": "Cách biểu diễn point cloud",
+        "t": "Point cloud representations (cách biểu diễn)",
         "en": "point-based · voxel · pillar / BEV · range image",
+        "fig": "pc-repr",
+        "figCap": "Cùng một đám điểm: chia ô 3D (voxel), gộp chiều cao thành cột (pillar), rồi nhìn từ trên thành ảnh giả 2D (BEV).",
         "d": "Point-based học thẳng trên điểm, giữ chi tiết nhưng khó chạy realtime. Voxel + sparse convolution chính xác, tận dụng tính cục bộ nhưng tốn bộ nhớ theo độ phân giải. Pillar/BEV gộp chiều cao thành cột nên rất nhanh, dùng được CNN 2D nhưng mất chi tiết theo chiều đứng. Range image xếp điểm theo tia quét.",
         "ex": "Trong ADAS, detector thường dùng voxel hoặc pillar để đạt độ trễ; point-based hay gặp ở bước tinh chỉnh hộp hoặc phân đoạn."
       },
       {
-        "t": "Voxel hoá",
+        "t": "Voxelization (voxel hoá)",
         "en": "voxel_size · point_cloud_range · max_points_per_voxel",
         "d": "Chia không gian thành các ô 3D đều nhau để dữ liệu thưa thành tensor có cấu trúc. Voxel to thì nhanh nhưng mất vật nhỏ; voxel nhỏ thì chính xác hơn nhưng bộ nhớ và độ trễ tăng vọt.",
         "ex": "Đổi voxel_size hay point_cloud_range mà không đo lại độ trễ và lát vật nhỏ thì chưa đủ bằng chứng; kết quả cũng không còn so sánh công bằng với checkpoint cũ."
       },
       {
         "t": "PointPillars",
-        "en": "PointPillars",
+        "en": "pillar → PointNet → ảnh giả BEV → CNN 2D",
         "d": "Pillar là voxel không chia theo chiều cao. Mỗi cột được mã hoá bằng một PointNet nhỏ, xếp thành một \"ảnh giả\" nhìn từ trên xuống, rồi đưa qua CNN 2D và đầu dò hộp. Là baseline nhanh, dễ chạy demo.",
         "ex": "AP của người đi bộ, xe đạp thấp → kiểm tra mật độ điểm, vùng cắt và augmentation trước khi đổi mô hình."
       },
       {
-        "t": "Đầu dò theo tâm",
-        "en": "center-based head (CenterPoint)",
+        "t": "Center-based head (đầu dò theo tâm, CenterPoint)",
+        "en": "heatmap tâm vật thay cho anchor",
         "d": "Thay vì thử mọi hộp neo (anchor), mạng vẽ một bản đồ nhiệt (heatmap) đánh dấu tâm vật trên BEV, rồi hồi quy kích thước, độ cao z, góc yaw và vận tốc. Tâm vật cũng giúp nối với tracking bằng cách ghép tâm gần nhất.",
         "ex": "Khi debug: tâm trên heatmap có lệch không, yaw có bị quấn quanh ±π không, vận tốc từ nhiều lần quét có đúng hệ và đúng thời gian không."
       },
       {
-        "t": "Quy ước hộp 3D",
-        "en": "3D box convention: x, y, z, dx, dy, dz, yaw",
+        "t": "3D box convention (quy ước hộp 3D)",
+        "en": "x, y, z, dx, dy, dz, yaw",
+        "fig": "box-conv",
+        "figCap": "Lẫn tâm hộp với tâm đáy làm hộp lơ lửng h/2; yaw đo từ trục x và quấn ở ±π.",
         "d": "Hộp 3D gồm tâm, ba kích thước và góc yaw (cộng lớp, điểm, vận tốc). Dataset khác nhau dùng tâm hộp hay tâm đáy, thứ tự kích thước và trục yaw khác nhau. Mô hình đúng mà đánh giá sai nếu quy ước không khớp.",
         "ex": "Hộp lơ lửng hoặc chui xuống đất → lẫn tâm và tâm đáy; xe xoay 90° → đảo dx, dy hoặc sai trục yaw; hộp khổng lồ → lẫn cm và m."
       },
       {
-        "t": "Metric 3D và lát đánh giá",
+        "t": "3D metrics & slices (metric 3D và lát đánh giá)",
         "en": "KITTI AP · nuScenes NDS · slices",
         "d": "KITTI chấm AP theo 2D, BEV, 3D với ngưỡng IoU, lớp và độ khó. nuScenes NDS kết hợp mAP với các lỗi vị trí, kích thước, hướng, vận tốc, thuộc tính. Ngoài ra cần độ trễ p50/p95 và lát theo khoảng cách, lớp, che khuất, thời tiết.",
         "ex": "mAP cao chưa đủ an toàn: phải xem riêng 0–20 m, 20–50 m, trên 50 m và người đi bộ gần xe."
       },
       {
-        "t": "Chiếu LiDAR lên camera",
-        "en": "LiDAR–camera projection K·[R | t]",
+        "t": "LiDAR–camera projection (chiếu LiDAR lên ảnh)",
+        "en": "K · [R | t]",
         "d": "Biến điểm LiDAR sang hệ camera bằng extrinsic [R | t], bỏ điểm có độ sâu không dương, rồi chiếu bằng intrinsic K ra điểm ảnh (u, v). Là bài test hiệu chuẩn rẻ nhất: điểm phải bám vào xe, cột, mép đường trên ảnh.",
         "ex": "Phủ điểm lên ảnh theo độ sâu; đo thêm sai số chiếu lại (reprojection error) và độ khớp cạnh theo thời gian. Thử ở mô phỏng."
       },
       {
-        "t": "Cách ghép camera và LiDAR",
+        "t": "Camera–LiDAR fusion styles (cách ghép camera và LiDAR)",
         "en": "point painting · frustum · BEV fusion · late fusion",
         "d": "Point painting: chiếu điểm vào ảnh để lấy nhãn ngữ nghĩa rồi đưa lại vào detector 3D. Frustum: detector 2D khoanh vùng, LiDAR tinh chỉnh. BEV fusion: đưa đặc trưng camera lên BEV rồi ghép với LiDAR. Late fusion: ghép kết quả cuối, dễ tích hợp nhưng khó tận dụng tương tác sâu.",
         "ex": "Ghép sớm nhạy với lệch hiệu chuẩn và chất lượng ảnh; ghép không tự làm hệ an toàn hơn nếu một cảm biến xấu mà không ai phát hiện."
+      },
+      {
+        "t": "Point cloud degradation (point cloud xuống cấp)",
+        "en": "range dropout · motion smear · occlusion · drift",
+        "d": "LiDAR tốt vẫn có lúc cho dữ liệu xấu: vật xa, mặt hấp thụ, mưa sương làm mật độ giảm (range dropout); xe quay nhanh mà thiếu thời gian từng điểm làm vật bị kéo (motion smear); xe lớn che người (occlusion); giá đỡ lỏng làm hiệu chuẩn trôi; kính và bề mặt phản xạ sinh điểm sai; mất gói làm thiếu cả mảng.",
+        "ex": "Nên ghi log theo thời gian: số điểm mỗi khung, mật độ theo góc, tỷ lệ điểm lỗi, phân bố intensity, mất gói, khoảng hở thời gian và điểm khớp khi chiếu lên ảnh."
+      },
+      {
+        "t": "Datasets & conventions (bộ dữ liệu và quy ước)",
+        "en": "KITTI · nuScenes · Waymo · log của đội",
+        "d": "Mỗi bộ dữ liệu có cách lắp cảm biến, hệ trục, bảng lớp, cách chia và metric riêng. KITTI hợp để học chiếu LiDAR–camera và hộp 3D cơ bản; nuScenes có nhiều lần quét, radar, camera, LiDAR và metric NDS; Waymo lớn, nhiều ca hiếm; log robot/drone của đội là miền thật nhưng thiếu nhãn.",
+        "ex": "nuScenes chỉ gán nhãn khung chính 2 Hz; KITTI ít cảnh nhưng file hiệu chuẩn rất quan trọng."
+      },
+      {
+        "t": "LiDAR helps camera labeling (LiDAR hỗ trợ gán nhãn ảnh)",
+        "en": "project 3D box → 2D gợi ý · label QA · data mining",
+        "d": "Chiếu hộp 3D từ LiDAR lên ảnh để gợi ý hộp 2D cho người gán nhãn; nếu nhãn 2D không khớp phép chiếu thì kiểm tra nhãn, hiệu chuẩn hoặc timestamp; chọn các khung có vật xa, bị che, mật độ thấp hay chiếu lệch để gán nhãn và huấn luyện lại.",
+        "ex": "Một script phủ điểm lên ảnh và một bảng thống kê chỗ lệch thường có giá trị hơn một mô hình mới chưa debug dữ liệu."
+      },
+      {
+        "t": "Debug order: 6 layers (thứ tự gỡ lỗi)",
+        "en": "I/O → geometry → time → preprocess → model → metric",
+        "d": "Khi detector 3D tệ, kiểm tra theo thứ tự: đọc đúng trường và frame chưa (I/O), biến đổi và quy ước hộp đúng chưa (hình học), đồng bộ và deskew chưa (thời gian), vùng cắt, voxel, bảng lớp có khớp lúc đánh giá không (tiền xử lý), checkpoint đúng dataset chưa (mô hình), metric có đúng lát của bài toán không (metric).",
+        "ex": "Bằng chứng tối thiểu: in schema và thống kê điểm; vẽ 3D với một điểm tự đặt; đo khoảng hở thời gian; dump config; chạy mẫu đo độ trễ p50/p95."
       }
     ],
     "formulas": [
@@ -1142,74 +1172,139 @@ export const DAYS: Lesson[] = [
     "title": "Tracking",
     "question": "Detector chỉ nói \"có 3 người trong khung hình này\". Làm sao biết người nào là người nào qua từng khung, và họ đang đi đâu?",
     "analogy": "Detector giống người có trí nhớ cá vàng: mỗi khung hình nhìn thế giới như lần đầu. Tracker đặt cho mỗi người một số áo (ID) và nhớ họ đã đi đâu. Khung tiếp theo, tracker đoán mỗi người sẽ ở đâu, rồi ghép người mới thấy với số áo phù hợp nhất.",
-    "why": "Có ID thì mới có lịch sử, vận tốc, hướng đi để dự đoán quỹ đạo và lập kế hoạch. Năm 2018, một xe thử nghiệm coi mỗi lần đổi nhãn là vật mới, xoá lịch sử chuyển động và không kịp phản ứng.",
+    "why": "Có ID thì mới có lịch sử, vận tốc, hướng đi để dự đoán quỹ đạo và lập kế hoạch: pipeline xe tự lái là cảm biến → detection → tracking → dự đoán → lập kế hoạch. Năm 2018 (Tempe, Arizona), một xe thử nghiệm phát hiện người dắt xe đạp từ 5,2 giây trước va chạm, nhưng mỗi lần nhãn đổi (Other → Vehicle → Bicycle → Unknown) phần mềm coi là một vật mới và xoá lịch sử chuyển động.",
     "steps": [
-      "Mỗi khung: detector cho các hộp.",
-      "Mỗi track cũ dự đoán vị trí mới bằng Kalman.",
-      "Ghép track với hộp mới bằng bảng chi phí và thuật toán Hungarian.",
-      "Cập nhật track đã ghép, tạo track mới, xoá track mất quá lâu.",
-      "Đo chất lượng bằng MOTA, IDF1, HOTA."
+      "Mỗi khung: detector cho các hộp (detect).",
+      "Mỗi track cũ dự đoán vị trí mới bằng Kalman (predict).",
+      "Ghép track với hộp mới bằng bảng chi phí và Hungarian (associate).",
+      "Cập nhật track đã ghép, tạo track mới, xoá track mất quá lâu (update).",
+      "Chọn tracker theo hoàn cảnh: SORT, DeepSORT, ByteTrack, OC-SORT, BoT-SORT…",
+      "Đo chất lượng bằng MOTA, IDF1, HOTA, và hiểu mỗi metric \"thích\" tracker nào."
     ],
     "concepts": [
       {
-        "t": "Tracking-by-detection",
-        "en": "tracking-by-detection",
-        "d": "Cách phổ biến nhất: dùng detector có sẵn, tracker chỉ lo ghép hộp qua các khung. Tracker không thể tốt hơn detector.",
-        "ex": "SORT, DeepSORT, ByteTrack đều theo cách này."
+        "t": "Detection vs tracking (phát hiện và theo dõi)",
+        "en": "có gì, ở đâu → là ai, đi đâu",
+        "d": "Detection trả lời \"có gì, ở đâu\" cho từng khung riêng lẻ. Tracking trả lời thêm \"là ai, đang đi đâu\" bằng cách gắn một ID ổn định xuyên các khung. Có ID mới có lịch sử: vận tốc, hướng đi, thời gian xuất hiện.",
+        "ex": "Cùng một video: detector báo \"3 người\" ở mọi khung; tracker biết người số 2 đang đi sang phải với 1,2 m/s."
       },
       {
-        "t": "Vòng đời một track",
-        "en": "track lifecycle",
-        "d": "Track mới ở trạng thái thử (tentative), đủ vài khung thì xác nhận (confirmed), mất hộp thì sang lạc (lost), lạc quá lâu thì bị xoá (removed).",
-        "ex": "Bị che 18 khung với track_buffer = 30 → hiện lại vẫn giữ ID cũ."
+        "t": "Tracking-by-detection (theo dõi dựa trên phát hiện)",
+        "en": "detect → predict → associate → update",
+        "d": "Cách phổ biến nhất: dùng detector có sẵn, tracker chỉ lo ghép hộp qua các khung theo vòng lặp bốn bước. Tracker không thể tốt hơn detector.",
+        "ex": "Một khung có 3 track cũ và 4 hộp mới: ghép được 3 cặp, hộp thừa sinh một track mới ở trạng thái thử.",
+        "fig": "track-loop",
+        "figCap": "Bốn bước lặp lại ở mỗi khung; bước ghép (associate) là nơi các thuật toán khác nhau nhiều nhất."
       },
       {
-        "t": "Bảng chi phí",
-        "en": "cost matrix",
-        "d": "Bảng điểm \"khác nhau bao nhiêu\" giữa mỗi track dự đoán và mỗi hộp mới. Có thể dựa vào chồng lấn (IoU), chuyển động (Mahalanobis) hoặc ngoại hình (Re-ID).",
-        "ex": "SORT dùng chi phí = 1 − IoU."
+        "t": "Predict with Kalman (dự đoán bằng Kalman)",
+        "en": "giả định vận tốc không đổi",
+        "d": "Mỗi track dùng bộ lọc Kalman (Day 20) đẩy vị trí đi tiếp theo vận tốc cũ; độ bất định tăng dần khi không có hộp để cập nhật. Điểm yếu: lúc vật bị che mà rẽ, Kalman vẫn đi thẳng.",
+        "ex": "Người đi sau cột rồi rẽ trái: dự đoán vẫn đi thẳng, khi người hiện ra thì hộp mới nằm lệch xa dự đoán."
       },
       {
-        "t": "Hungarian",
-        "en": "Hungarian matching",
-        "d": "Thuật toán ghép một–một sao cho tổng chi phí nhỏ nhất. Tốt hơn ghép tham lam (chọn cặp rẻ nhất trước) vì không \"hy sinh\" cặp cuối.",
-        "ex": "Trong Python: scipy.optimize.linear_sum_assignment."
+        "t": "Track lifecycle (vòng đời một track)",
+        "en": "tentative → confirmed → lost → removed",
+        "d": "Track mới ở trạng thái thử (tentative), đủ min_hits khung thì xác nhận (confirmed), mất hộp thì sang lạc (lost), lạc quá track_buffer khung thì bị xoá (removed). Track đang lạc mà ghép lại được thì quay về confirmed với ID cũ.",
+        "ex": "Bị che 18 khung với track_buffer = 30 → hiện lại vẫn giữ ID 1. Bị che 40 khung → track đã bị xoá, người hiện lại nhận ID mới.",
+        "fig": "track-life",
+        "figCap": "Hai tham số min_hits và track_buffer quyết định track sinh ra nhanh đến đâu và sống được bao lâu khi mất dấu."
       },
       {
-        "t": "Re-ID",
-        "en": "re-identification",
-        "d": "Nén ảnh mỗi người thành một vector \"dấu vân ngoại hình\". Cùng người thì vector gần nhau, giúp nhận lại người sau khi bị che lâu.",
-        "ex": "Vô dụng khi mọi người mặc đồng phục giống hệt."
+        "t": "Cost matrix (bảng chi phí)",
+        "en": "track dự đoán × hộp mới",
+        "d": "Bảng điểm \"khác nhau bao nhiêu\" giữa mỗi track dự đoán và mỗi hộp mới. Có thể dựa vào chồng lấn (IoU), chuyển động (Mahalanobis) hoặc ngoại hình (Re-ID); thường là tổng có trọng số của vài thước đo.",
+        "ex": "SORT dùng chi phí = 1 − IoU; DeepSORT trộn Mahalanobis với độ giống ngoại hình."
+      },
+      {
+        "t": "IoU and its limits (IoU và giới hạn)",
+        "en": "IoU · GIoU · DIoU · CIoU",
+        "d": "IoU = phần giao / phần hợp của hai hộp: rẻ, không cần huấn luyện. Nhưng hai hộp không chạm nhau thì IoU = 0, dù là cùng một vật đang chạy nhanh hoặc fps thấp. GIoU, DIoU, CIoU phân biệt được \"gần\" và \"xa\" khi IoU = 0, chủ yếu dùng làm hàm mất mát khi huấn luyện detector.",
+        "ex": "Hai hộp mỗi hộp 12 ô, giao 4 ô: IoU = 4 / (12 + 12 − 4) = 0,20. Vật nhỏ ở xa, fps thấp: dịch chuyển lớn hơn bề rộng hộp → IoU = 0, nên dùng khoảng cách tâm."
+      },
+      {
+        "t": "Motion gating (Mahalanobis)",
+        "en": "tin dự đoán đến đâu thì chấp nhận đến đó",
+        "d": "Kalman không chỉ cho một điểm dự đoán mà cho cả vùng bất định. Khoảng cách Mahalanobis chia khoảng cách theo độ bất định đó: hướng nào đang chắc thì vùng chấp nhận hẹp, hướng nào chưa chắc thì rộng. Cặp vượt ngưỡng bị loại trước khi ghép.",
+        "ex": "DeepSORT loại cặp có d² > 9,4877 (ngưỡng chi-square 95% với 4 bậc tự do). Điểm yếu: vật rẽ gấp hay đổi tốc độ đột ngột thì vùng dự đoán sai.",
+        "fig": "mahalanobis",
+        "figCap": "Vòng tròn coi mọi hướng như nhau nên nhận nhầm D2; elip biết hướng dọc đang chắc nên loại D2 và giữ D1."
+      },
+      {
+        "t": "Re-ID (nhận lại theo ngoại hình)",
+        "en": "appearance embedding · OSNet · BoT",
+        "d": "Một mạng CNN nén ảnh mỗi người thành một vector \"dấu vân ngoại hình\"; cùng người thì vector gần nhau (cosine cao). Cứu được khi vật biến mất rồi quay lại hoặc đổi camera, nhưng tốn tính toán và vô dụng khi mọi người trông giống hệt nhau.",
+        "ex": "OSNet khoảng 2,2 triệu tham số, chạy được trên CPU (mặc định khi bật Re-ID trong Ultralytics); BoT baseline (ResNet-50) khoảng 24 triệu tham số, chính xác hơn nhưng cần GPU."
+      },
+      {
+        "t": "Hungarian vs greedy (ghép tối ưu và ghép tham lam)",
+        "en": "tổng chi phí nhỏ nhất · O(n³)",
+        "d": "Ghép tham lam chọn cặp rẻ nhất trước rồi khoá hàng và cột: nhanh nhưng lựa chọn đầu \"ngon\" có thể kéo theo cặp cuối rất tệ. Hungarian (Kuhn–Munkres) tìm cách ghép một–một có tổng chi phí nhỏ nhất. Chọn xong vẫn loại cặp có chi phí vượt ngưỡng.",
+        "ex": "Bảng [[1, 2, 6], [2, 8, 7], [6, 7, 3]]: tham lam ra 1 + 3 + 8 = 12, Hungarian ra 2 + 2 + 3 = 7. Trong Python: scipy.optimize.linear_sum_assignment."
+      },
+      {
+        "t": "SORT → DeepSORT",
+        "en": "motion + IoU → thêm ngoại hình",
+        "d": "SORT (2016): Kalman + Hungarian trên 1 − IoU, cực nhẹ, nhưng mất ID khi bị che quá vài khung. DeepSORT (2017): thêm Re-ID và Mahalanobis, và \"matching cascade\" ưu tiên ghép track vừa mất trước, track mất lâu sau, vì dự đoán của track mất lâu kém tin cậy.",
+        "ex": "Paper DeepSORT báo giảm khoảng 45% số lần đổi ID so với SORT. SORT hợp cảnh thưa, camera tĩnh; DeepSORT hợp an ninh, bán lẻ hay bị che."
       },
       {
         "t": "ByteTrack",
-        "en": "ByteTrack",
-        "d": "Người bị che thường vẫn được thấy nhưng điểm tin cậy thấp. ByteTrack dùng các hộp điểm thấp ở vòng ghép thứ hai để giữ track, nhưng không bao giờ tạo track mới từ chúng.",
-        "ex": "Không cần Re-ID nên vẫn rất nhanh."
+        "en": "đừng vứt hộp điểm thấp",
+        "d": "Người bị che thường vẫn được thấy nhưng điểm tin cậy tụt. ByteTrack ghép hai vòng: vòng 1 dùng hộp điểm cao cho mọi track; vòng 2 dùng hộp điểm thấp cho các track chưa ghép được. Hộp điểm thấp không bao giờ tạo track mới.",
+        "ex": "Không cần Re-ID nên vẫn rất nhanh; hợp camera cố định, đông người, hay bị kệ hàng che. Thử ở mô phỏng \"ByteTrack\"."
       },
       {
-        "t": "OC-SORT và BoT-SORT",
-        "en": "motion fixes",
-        "d": "OC-SORT sửa dự đoán khi vật bị che rồi đổi hướng. BoT-SORT trừ chuyển động của chính camera (xe, drone) để vật đứng yên không bị tưởng là đang chạy.",
-        "ex": "Thể thao → OC-SORT; camera gắn xe → BoT-SORT."
+        "t": "OC-SORT",
+        "en": "sửa Kalman khi bị che rồi đổi hướng",
+        "d": "Khi tìm lại vật sau lúc bị che, OC-SORT dựng một quỹ đạo ảo giữa hai lần quan sát thật gần nhất để cập nhật lại trạng thái, cộng ràng buộc hướng đi. Không cần Re-ID, nhanh gần bằng SORT.",
+        "ex": "Hợp chuyển động phi tuyến: thể thao, người nhảy múa. Vẫn không cứu được hai vật giống hệt đi sát nhau."
       },
       {
-        "t": "ID switch",
-        "en": "identity switch",
-        "d": "Hai người đi ngang nhau và tracker đổi nhãn của họ. Đây là lỗi tracking quan trọng nhất.",
-        "ex": "MOTA gần như không nhạy với lỗi này; IDF1 và HOTA thì nhạy."
+        "t": "BoT-SORT & StrongSORT",
+        "en": "bù chuyển động camera · cộng dồn bản vá",
+        "d": "BoT-SORT ước lượng chuyển động của chính camera (optical flow/ECC) rồi trừ vào dự đoán, để vật đứng yên không bị tưởng là đang chạy. StrongSORT nâng từng mắt xích của DeepSORT (trộn embedding mượt hơn, Kalman tin theo score, bù camera, nối track offline).",
+        "ex": "Camera gắn xe, drone → BoT-SORT. StrongSORT với AFLink/GSI chạy offline, hợp phân tích video sau khi quay."
+      },
+      {
+        "t": "Joint & end-to-end trackers (học luôn việc theo dõi)",
+        "en": "FairMOT · CenterTrack · MOTR · SAM 2/3",
+        "d": "Thay vì detector rồi tracker: FairMOT dùng một mạng xuất cả hộp lẫn embedding; CenterTrack dự đoán dịch chuyển tâm giữa hai khung; MOTR giữ mỗi vật là một \"track query\" của transformer; SAM 2/3 bám theo mask từ một điểm hay một mô tả chữ.",
+        "ex": "Thực tế sản xuất: tracking-by-detection vẫn là \"ngựa thồ\" vì rẻ, dễ debug, tách được lỗi do detector hay do tracker. SAM 2/3 rất mạnh để tạo nhãn video nhanh."
+      },
+      {
+        "t": "Error types (các loại lỗi)",
+        "en": "FN · FP · ID switch · fragmentation",
+        "d": "Bỏ sót (FN): có vật thật mà không có hộp. Hộp ma (FP): có hộp ở chỗ không có gì. Đổi ID (ID switch): hai người giao nhau và nhãn bị hoán đổi. Phân mảnh (fragmentation): một quỹ đạo bị cắt thành nhiều đoạn.",
+        "ex": "ID switch là lỗi quan trọng nhất với bài toán quỹ đạo: quỹ đạo dự đoán nhảy lung tung, xe phanh gấp hoặc không phanh."
+      },
+      {
+        "t": "MOTA vs IDF1 vs HOTA",
+        "en": "mỗi metric \"thích\" một kiểu tracker",
+        "d": "MOTA = 1 − (FN + FP + IDSW) / GT: mỗi lần đổi ID chỉ tính một lỗi nên chủ yếu phản ánh detector. IDF1 ghép mỗi người thật với đúng một ID cho cả video nên phạt nặng việc chia đôi danh tính. HOTA = √(DetA × AssA) cân bằng phát hiện và giữ ID, là metric chính của MOT Challenge.",
+        "ex": "Minh hoạ trong slide: tracker A (detector rất tốt, ID hay đổi) có MOTA 82 nhưng IDF1 61; tracker B (ID ổn định) có MOTA 68 nhưng IDF1 74, HOTA 72. Đếm vật mỗi khung thì A đủ; dự đoán quỹ đạo thì cần B."
       }
     ],
     "formulas": [
+      {
+        "tex": "\\mathrm{IoU} = \\dfrac{|A \\cap B|}{|A \\cup B|}",
+        "read": "Phần giao chia phần hợp của hai hộp.",
+        "ex": "Giao 4 ô, mỗi hộp 12 ô: 4 / 20 = 0,20."
+      },
       {
         "tex": "c_{ij} = 1 - \\mathrm{IoU}(T_i, D_j)",
         "read": "Chi phí ghép track i với hộp j = 1 trừ độ chồng lấn.",
         "ex": "Chồng khít → chi phí gần 0."
       },
       {
+        "tex": "\\mathrm{GIoU} = \\mathrm{IoU} - \\dfrac{|C \\setminus (A \\cup B)|}{|C|}",
+        "read": "C là hộp nhỏ nhất bao cả hai; phần thừa của C càng lớn (hai hộp càng xa) thì điểm càng âm.",
+        "ex": "Hai hộp rời nhau: IoU = 0 cho cả trường hợp gần lẫn xa, GIoU thì phân biệt được."
+      },
+      {
         "tex": "d^2 = (x-\\mu)^{\\top}\\,\\Sigma^{-1}\\,(x-\\mu)",
         "read": "Khoảng cách Mahalanobis: khoảng cách đã chia theo độ không chắc của dự đoán, nên hướng nào chắc thì vùng chấp nhận hẹp.",
-        "ex": "DeepSORT loại cặp có d² > 9,49."
+        "ex": "DeepSORT loại cặp có d² > 9,4877."
       },
       {
         "tex": "\\cos\\theta = \\dfrac{u \\cdot v}{\\|u\\|\\,\\|v\\|}",
@@ -1218,18 +1313,18 @@ export const DAYS: Lesson[] = [
       },
       {
         "tex": "\\mathrm{MOTA} = 1 - \\dfrac{\\mathrm{FN} + \\mathrm{FP} + \\mathrm{IDSW}}{\\mathrm{GT}}",
-        "read": "Độ chính xác = 1 trừ (bỏ sót + báo nhầm + đổi ID) chia tổng số vật thật.",
-        "ex": "1 000 vật thật, 180 lỗi → 82%."
+        "read": "Độ chính xác = 1 trừ (bỏ sót + báo nhầm + đổi ID) chia tổng số vật thật. Có thể âm khi lỗi nhiều hơn số vật.",
+        "ex": "1 000 vật thật, 100 + 50 + 30 lỗi → 82%."
       },
       {
         "tex": "\\mathrm{IDF1} = \\dfrac{2\\,\\mathrm{IDTP}}{2\\,\\mathrm{IDTP} + \\mathrm{IDFN} + \\mathrm{IDFP}}",
         "read": "Đo mức giữ đúng một ID cho mỗi người suốt video.",
-        "ex": "Một người, 6 khung ID 1 rồi 4 khung ID 2: IDF1 60%, trong khi MOTA 90%."
+        "ex": "Một người, 6 khung ID 1 rồi 4 khung ID 2: IDF1 60%, trong khi MOTA 90%. Thử ở mô phỏng."
       },
       {
         "tex": "\\mathrm{HOTA} = \\sqrt{\\mathrm{DetA} \\times \\mathrm{AssA}}",
-        "read": "Trung bình nhân của \"phát hiện tốt\" và \"giữ ID tốt\"; một bên tệ kéo cả điểm xuống.",
-        "ex": "DetA 85%, AssA 45% → 61,8%."
+        "read": "Trung bình nhân của \"phát hiện tốt\" và \"giữ ID tốt\", tính ở nhiều ngưỡng IoU α rồi lấy trung bình; một bên tệ kéo cả điểm xuống.",
+        "ex": "10 TP, 2 FN, 1 FP → DetA ≈ 77%; 8/10 cặp giữ đúng ID → AssA ≈ 80% → HOTA ≈ 78%."
       }
     ],
     "table": {
@@ -1241,13 +1336,13 @@ export const DAYS: Lesson[] = [
       ],
       "rows": [
         [
-          "Camera cố định, đông người, hay bị che",
+          "Camera cố định, đông người, hay bị che (bán lẻ)",
           "ByteTrack",
-          "Giữ track bằng hộp điểm thấp"
+          "Giữ track bằng hộp điểm thấp, không cần bù camera"
         ],
         [
           "Camera gắn xe hoặc drone",
-          "BoT-SORT",
+          "BoT-SORT (± Re-ID)",
           "Bù chuyển động camera"
         ],
         [
@@ -1261,18 +1356,24 @@ export const DAYS: Lesson[] = [
           "Re-ID mạnh để nhận lại người"
         ],
         [
+          "Kho vận, robot AMR: ít vật, cần realtime",
+          "SORT",
+          "Đơn giản, rất nhanh"
+        ],
+        [
           "Drone bám theo một người",
-          "Tracker SOT",
+          "Tracker SOT (KCF, SiamFC…)",
           "Bài toán một đối tượng, họ khác"
         ]
       ]
     },
     "traps": [
       "IoU = 0 khi vật chạy nhanh hoặc fps thấp, dù vẫn là cùng một vật.",
-      "Hungarian chọn xong vẫn loại cặp có IoU dưới ngưỡng.",
+      "Hungarian chọn xong vẫn loại cặp có chi phí vượt ngưỡng: track đó sang Lost, hộp thừa sinh track mới.",
+      "Hạ ngưỡng điểm để khỏi mất người bị che thì hộp báo nhầm cũng thành track; ByteTrack giải quyết bằng vòng ghép thứ hai.",
       "StrongSORT với AFLink/GSI chạy offline, không hợp ứng dụng tức thời.",
-      "MOTA cao chưa chắc giữ ID tốt.",
-      "Nhãn đáp án (ground truth) sai thì điểm cũng sai theo."
+      "MOTA cao chưa chắc giữ ID tốt; đọc thêm IDF1 và HOTA.",
+      "Nhãn đáp án (ground truth) sai thì điểm cũng sai theo: một lỗi đổi ID trong GT làm tracker hoàn hảo cũng bị trừ IDF1."
     ],
     "remember": [
       "Tracking = detection + trí nhớ: dự đoán, ghép, cập nhật.",
@@ -1280,6 +1381,14 @@ export const DAYS: Lesson[] = [
       "MOTA thiên về phát hiện; IDF1, HOTA nhạy với việc giữ ID."
     ],
     "cards": [
+      [
+        "Bốn bước của tracking-by-detection?",
+        "Detect → predict → associate → update."
+      ],
+      [
+        "IoU của hai hộp không chạm nhau?",
+        "Bằng 0, dù hai hộp gần hay xa."
+      ],
       [
         "DeepSORT ưu tiên ghép track nào trước?",
         "Track vừa mới mất, vì dự đoán của track mất lâu kém tin cậy."
@@ -1303,6 +1412,10 @@ export const DAYS: Lesson[] = [
       [
         "Vật bị che lâu hơn track_buffer thì sao?",
         "Track bị xoá, vật hiện lại nhận ID mới; cần Re-ID để nối lại."
+      ],
+      [
+        "Camera gắn xe, vật đứng yên bị tưởng đang chạy: sửa bằng gì?",
+        "Bù chuyển động camera (GMC) như BoT-SORT."
       ]
     ]
   },

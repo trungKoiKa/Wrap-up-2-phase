@@ -152,6 +152,14 @@ ol.lflow .ft { font-size: 0.88rem; color: var(--muted); }
 .sv-ray { stroke: var(--primary); stroke-width: 1.6; stroke-dasharray: 6 4; }
 .sv-cam { fill: var(--fg); }
 .sv-car { fill: var(--primary); }
+.sv-id1 { fill: var(--primary); } .sv-id2 { fill: var(--warn); } .sv-id3 { fill: var(--ok); }
+.sv-lost { fill: none; stroke: var(--bad); stroke-width: 1.5; stroke-dasharray: 3 2; }
+.sv-hl { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 1.5; }
+.sv-tag { fill: var(--fg); font: 600 11px var(--font-sans, system-ui); }
+/* hình minh hoạ tĩnh dưới khái niệm */
+.cfig { margin: 6px 0 0; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.cfig svg { display: block; width: 100%; height: auto; max-width: 560px; }
+.cfig figcaption { margin-top: 6px; font-size: 0.82rem; color: var(--muted); }
 .sv-ghost { fill: none; stroke: var(--border); stroke-dasharray: 5 4; }
 .sv-img { fill: var(--primary-soft); stroke: var(--primary); stroke-width: 1.5; }
 .sv-tok { stroke: var(--primary); stroke-opacity: 0.5; stroke-width: 0.6; fill: none; }

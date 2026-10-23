@@ -9,7 +9,7 @@ import SimHost from '../components/lesson/SimHost'
 import Tex from '../components/lesson/Tex'
 import { BOOK_BY_ID, BOOK_OF_LESSON, BOOKS, LESSON_BY_ID, type Book, type BookId, type Lesson } from '../data/lessons'
 import type { Concept } from '../data/lessons/types'
-import { SIMS as SIMS_CV } from '../lessons/sims.js'
+import { FIGS, SIMS as SIMS_CV } from '../lessons/sims.js'
 import { SIMS as SIMS_P1 } from '../lessons/sims-p1.js'
 import { QUESTIONS } from '../data'
 import { load, save } from '../lib/storage'
@@ -235,6 +235,13 @@ function ConceptList({ d, a, enFirst, deep }: { d: Lesson; a: Annotated; enFirst
                 <b>Ví dụ</b>
                 <Rich segs={a.concepts[i].ex} />
               </p>
+              {c.fig && FIGS[c.fig] && (
+                <figure className="cfig">
+                  {/* SVG do sổ ôn tự vẽ (nội dung tĩnh, không có dữ liệu người dùng) */}
+                  <div dangerouslySetInnerHTML={{ __html: FIGS[c.fig]() }} />
+                  {c.figCap && <figcaption>{c.figCap}</figcaption>}
+                </figure>
+              )}
             </div>
           </div>
         )
