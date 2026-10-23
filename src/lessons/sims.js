@@ -1,4 +1,4 @@
-// Mô phỏng tương tác cho từng buổi. Mỗi mục: { title, intro, tries[], build(ui) }.
+// Mô phỏng tương tác cho từng buổi. Mỗi mục: { title, intro, tries[], build(ui) }, hoặc một mảng nhiều mục.
 // ui: { controls, fig, out, slider(opts, cb), select(label, options, value, cb), button(label, cb), svg(w, h) }
 var NS = 'http://www.w3.org/2000/svg';
 function S(tag, attrs, parent) {
@@ -133,8 +133,134 @@ SIMS.day18 = {
   },
 };
 
+// Day 19 · Bốn cảm biến trong cùng một cảnh, đổi môi trường
+var SENSOR_SIM = {
+  title: 'Bốn cảm biến nhìn cùng một con đường',
+  intro: 'Nhìn từ trên xuống: xe của bạn ở bên trái, chạy sang phải. Phía trước có một xe cùng làn (45 m), một người đi bộ trên vỉa hè (25 m), một xe sơn đen ở làn ngược chiều (72 m), một cột thấp sát cản xe (2,7 m) và rào chắn ven đường. Chọn môi trường và mức độ để xem camera, LiDAR, radar, sonar mỗi loại thấy gì, rơi vào mức S0–S3 nào, và khi ghép lại thì còn sót gì.',
+  tries: ['Chọn từng cảm biến ở "Hiện cảm biến" để thấy vùng nó phủ: camera hình quạt rộng, radar hẹp mà xa, LiDAR quanh xe, sonar chỉ sát cản.', 'Trời đẹp: ba cảm biến chính thấy cả ba vật phía trước, nhưng cột thấp sát cản chỉ sonar thấy (nằm ngoài góc nhìn camera, radar và trong vùng mù gần của LiDAR trên nóc xe).', 'Nhìn bóng ma radar bên kia rào chắn: chỉ radar báo, không cảm biến nào xác nhận, nên bước hợp nhất loại bỏ.', 'Chọn "Sương mù" ở mức 100%: camera và LiDAR gần như mù, LiDAR còn sinh điểm giả sát xe; radar vẫn thấy xe phía trước.', 'Chọn "Ban đêm": camera mất người đi bộ trước tiên, còn LiDAR và radar không đổi vì tự phát sóng.', 'Chọn "Chói nắng": camera mất đúng các vật ngay phía trước, nơi mặt trời rọi vào ống kính.', 'Chọn "Mưa lớn": LiDAR mất xe sơn đen trước xe sáng màu vì bề mặt tối phản xạ ít tia laser; radar thì không quan tâm màu sơn.', 'Chọn "Cảm biến bị bẩn": mọi cảm biến cùng xuống cấp, sonar bẩn làm sót cả cột sát cản; đây là lúc cần health check và hành động theo mức S0–S3.'],
+  build: function (ui) {
+    var ENVS = ['Trời đẹp ban ngày', 'Ban đêm', 'Mưa lớn', 'Sương mù', 'Chói nắng ngược chiều', 'Cảm biến bị bẩn (bùn)'];
+    var SHOW = ['Tất cả', 'Camera', 'LiDAR', 'Radar', 'Sonar'];
+    var env = ENVS[0], show = SHOW[0], sev = 70;
+    ui.select('Môi trường', ENVS, env, function (v) { env = v; draw(); });
+    ui.slider({ label: 'Mức độ', min: 0, max: 100, step: 10, value: sev, fmt: function (v) { return v + '%'; } }, function (v) { sev = v; draw(); });
+    ui.select('Hiện cảm biến', SHOW, show, function (v) { show = v; draw(); });
+    var OBJ = [
+      { k: 'car', x: 45, y: 0, name: 'xe phía trước' },
+      { k: 'ped', x: 25, y: -3.5, name: 'người đi bộ' },
+      { k: 'dark', x: 72, y: 4, name: 'xe sơn đen' },
+      { k: 'pole', x: 1.6, y: -2.2, name: 'cột thấp sát cản' },
+    ];
+    var GHOST = { x: 48, y: -13 };
+    // tầm tối đa (m) trong điều kiện tốt; null = không thấy được loại vật này
+    var BASE = {
+      cam: { car: 100, ped: 60, dark: 90, pole: 30 },
+      lidar: { car: 120, ped: 80, dark: 80, pole: 50 },
+      radar: { car: 160, ped: 45, dark: 160, pole: 20 },
+      sonar: { car: 4.5, ped: 4.5, dark: 4.5, pole: 4.5 },
+    };
+    var FOV = { cam: 35, lidar: 180, radar: 25, sonar: 180 };
+    var NAME = { cam: 'Camera', lidar: 'LiDAR', radar: 'Radar', sonar: 'Sonar' };
+    function factor(sn, o, s) {
+      var ahead = o && Math.abs(Math.atan2(o.y, o.x) * 180 / Math.PI) < 12;
+      if (env === 'Ban đêm') return sn === 'cam' ? (o && o.k === 'ped' ? 1 - 0.9 * s : o && o.k === 'dark' ? 1 - 0.7 * s : 1 - 0.5 * s) : 1;
+      if (env === 'Mưa lớn') return { cam: 1 - 0.5 * s, lidar: 1 - 0.4 * s, radar: 1 - 0.1 * s, sonar: 1 - 0.1 * s }[sn];
+      if (env === 'Sương mù') return { cam: 1 - 0.85 * s, lidar: 1 - 0.8 * s, radar: 1, sonar: 1 }[sn];
+      if (env === 'Chói nắng ngược chiều') return sn === 'cam' ? (ahead ? 1 - 0.9 * s : 1 - 0.3 * s) : sn === 'lidar' ? 1 - 0.1 * s : 1;
+      if (env === 'Cảm biến bị bẩn (bùn)') return { cam: 1 - 0.7 * s, lidar: 1 - 0.5 * s, radar: 1 - 0.35 * s, sonar: 1 - 0.8 * s }[sn];
+      return 1;
+    }
+    function sees(sn, o, s) {
+      var d = Math.hypot(o.x, o.y), ang = Math.abs(Math.atan2(o.y, o.x) * 180 / Math.PI);
+      if (ang > FOV[sn]) return false;
+      if (sn === 'lidar' && o.k === 'pole' && d < 3) return false; // vùng mù gần của LiDAR trên nóc xe với vật thấp
+      return d <= BASE[sn][o.k] * factor(sn, o, s);
+    }
+    function level(sn, s) {
+      var f = (factor(sn, OBJ[0], s) + factor(sn, OBJ[1], s)) / 2;
+      return f >= 0.85 ? ['S0', 'ok'] : f >= 0.6 ? ['S1', 'ok'] : f >= 0.3 ? ['S2', 'warn'] : ['S3', 'bad'];
+    }
+    var clipSeq = 0, W = 560, H = 320, KX = 5.2, KY = 11, X = function (x) { return 26 + (x + 4) * KX; }, Y = function (y) { return 14 + (8 - y) * KY; };
+    function wedge(svg, range, half, cls, op) {
+      var pts = [[X(0), Y(0)]];
+      for (var a = -half; a <= half; a += half / 12) { var r = a * Math.PI / 180; pts.push([X(range * Math.cos(r)), Y(range * Math.sin(r))]); }
+      S('polygon', { points: pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '), class: cls, style: 'stroke:none;fill-opacity:' + op }, svg);
+    }
+    function draw() {
+      var s = sev / 100, root = ui.svg(W, H), on = function (sn) { return show === 'Tất cả' || show === NAME[sn]; };
+      // cảnh được cắt trong khung để vùng phủ không tràn ra chú thích
+      var cid = 'sensclip' + (clipSeq++), defs = S('defs', {}, root), cp = S('clipPath', { id: cid }, defs);
+      S('rect', { x: X(-4), y: Y(8), width: X(98) - X(-4), height: Y(-15) - Y(8) }, cp);
+      S('rect', { x: X(-4), y: Y(8), width: X(98) - X(-4), height: Y(-15) - Y(8), class: 'sv-ghost' }, root);
+      var svg = S('g', { 'clip-path': 'url(#' + cid + ')' }, root);
+      // vùng phủ (tô mờ) chỉ vẽ khi chọn một cảm biến, để chế độ "Tất cả" không bị rối
+      var one = function (sn) { return show === NAME[sn]; };
+      if (one('lidar')) { var rl = Math.min(100, BASE.lidar.car * factor('lidar', OBJ[0], s)); S('ellipse', { cx: X(0), cy: Y(0), rx: rl * KX, ry: rl * KY, class: 'sv-band', style: 'stroke:none;fill-opacity:.12' }, svg); }
+      if (one('cam')) wedge(svg, Math.min(100, BASE.cam.car * factor('cam', OBJ[0], s)), FOV.cam, 'sv-boxA', 0.45);
+      if (one('radar')) wedge(svg, Math.min(100, BASE.radar.car * factor('radar', OBJ[0], s)), FOV.radar, 'sv-inter', 0.35);
+      if (one('sonar')) { var rs = 4.5 * factor('sonar', null, s); S('ellipse', { cx: X(0), cy: Y(0), rx: rs * KX, ry: rs * KY, class: 'sv-boxB', style: 'fill-opacity:.5' }, svg); }
+      // đường: hai làn, mép đường, rào chắn
+      S('line', { x1: X(-4), y1: Y(6), x2: X(98), y2: Y(6), class: 'sv-ax' }, svg);
+      S('line', { x1: X(-4), y1: Y(2), x2: X(98), y2: Y(2), class: 'sv-dash' }, svg);
+      S('line', { x1: X(-4), y1: Y(-2), x2: X(98), y2: Y(-2), class: 'sv-ax' }, svg);
+      S('line', { x1: X(-4), y1: Y(-6.5), x2: X(98), y2: Y(-6.5), class: 'sv-ax sv-bold' }, svg);
+      T(svg, X(96), Y(-6.5) + 14, 'rào chắn', { 'text-anchor': 'end' });
+      T(svg, X(96), Y(-4) + 4, 'vỉa hè', { 'text-anchor': 'end' });
+      T(svg, X(96), Y(4) + 4, 'làn ngược chiều', { 'text-anchor': 'end' });
+      // vật thật
+      OBJ.forEach(function (o) {
+        if (o.k === 'ped') S('circle', { cx: X(o.x), cy: Y(o.y), r: 5, class: 'sv-cam' }, svg);
+        else if (o.k === 'pole') S('rect', { x: X(o.x) - 4, y: Y(o.y) - 4, width: 8, height: 8, class: 'sv-cam' }, svg);
+        else S('rect', { x: X(o.x - 2.2), y: Y(o.y + 0.9), width: 4.4 * KX, height: 1.8 * KY, rx: 2, class: o.k === 'dark' ? 'sv-cam' : 'sv-car' }, svg);
+        T(svg, X(o.x), Y(o.y) - (o.k === 'pole' ? -18 : 14), { car: 'xe 45 m', ped: 'người 25 m', dark: 'xe đen 72 m', pole: 'cột 2,7 m' }[o.k], { 'text-anchor': 'middle' });
+      });
+      S('rect', { x: X(-2.2), y: Y(0.9), width: 4.4 * KX, height: 1.8 * KY, rx: 2, class: 'sv-car' }, svg);
+      T(svg, X(0), Y(0.9) - 6, 'xe bạn', { 'text-anchor': 'middle' });
+      // phát hiện của từng cảm biến
+      var seen = { cam: [], lidar: [], radar: [], sonar: [] }, rnd = (function (seed) { return function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; })(7);
+      OBJ.forEach(function (o) {
+        ['cam', 'lidar', 'radar', 'sonar'].forEach(function (sn) { if (sees(sn, o, s)) seen[sn].push(o); });
+        if (on('cam') && seen.cam.indexOf(o) >= 0) S('rect', { x: X(o.x - 3), y: Y(o.y + 1.5), width: 6 * KX, height: 3 * KY, class: 'sv-pred' }, svg);
+        if (on('lidar') && seen.lidar.indexOf(o) >= 0) for (var i = 0; i < 6; i++) S('circle', { cx: X(o.x - 1.6 + (o.k === 'ped' || o.k === 'pole' ? 1.3 : 0)), cy: Y(o.y - 0.8 + i * 0.32), r: 1.6, class: 'sv-dot' }, svg);
+        if (on('radar') && seen.radar.indexOf(o) >= 0) {
+          var d = Math.hypot(o.x, o.y), ry = Math.max(0.8, d * Math.tan(3 * Math.PI / 180));
+          S('ellipse', { cx: X(o.x), cy: Y(o.y), rx: 2.2 * KX, ry: ry * KY, class: 'sv-fuse' }, svg);
+        }
+        if (on('sonar') && seen.sonar.indexOf(o) >= 0) S('circle', { cx: X(o.x), cy: Y(o.y), r: 10, class: 'sv-fuse' }, svg);
+      });
+      // điểm giả của LiDAR do giọt nước
+      var clutter = (env === 'Mưa lớn' || env === 'Sương mù') && on('lidar') ? Math.round((env === 'Sương mù' ? 45 : 30) * s) : 0;
+      for (var c = 0; c < clutter; c++) { var cr = 1.5 + rnd() * 9, ca = (rnd() - 0.5) * 2 * Math.PI; S('circle', { cx: X(cr * Math.cos(ca)), cy: Y(cr * Math.sin(ca) * 0.6), r: 1.3, class: 'sv-dot' }, svg); }
+      // bóng ma radar: phản xạ qua rào chắn, chỉ có khi radar thấy xe phía trước
+      var ghost = seen.radar.indexOf(OBJ[0]) >= 0;
+      if (ghost && on('radar')) { S('ellipse', { cx: X(GHOST.x), cy: Y(GHOST.y), rx: 2.2 * KX, ry: 2.4 * KY, class: 'sv-fuse sv-thin' }, svg); T(svg, X(GHOST.x) + 14, Y(GHOST.y) + 4, 'bóng ma radar'); }
+      T(root, X(-4), H - 24, 'Camera: khung xanh dương · LiDAR: chấm cam · Radar: elip xanh lá · Sonar: vòng sát xe');
+      T(root, X(-4), H - 8, 'Elip radar bè ngang vì phân giải góc kém. Chọn một cảm biến để thấy vùng phủ.');
+      // kết quả
+      var rows = ['cam', 'lidar', 'radar', 'sonar'].map(function (sn) {
+        var lv = level(sn, s), list = seen[sn].map(function (o) { return o.name; });
+        return [NAME[sn] + ' · ' + lv[0], list.length ? 'thấy ' + list.join(', ') : 'không thấy vật nào', lv[1]];
+      });
+      var fused = OBJ.filter(function (o) { return ['cam', 'lidar', 'radar', 'sonar'].some(function (sn) { return seen[sn].indexOf(o) >= 0; }); });
+      var miss = OBJ.filter(function (o) { return fused.indexOf(o) < 0; }).map(function (o) { return o.name; });
+      rows.push(['Ghép cả bốn', fused.length + '/4 vật thật' + (miss.length ? '; sót ' + miss.join(', ') : '') + (ghost ? '; bóng ma bị loại vì chỉ radar thấy' : ''), fused.length === 4 ? 'ok' : fused.length >= 3 ? 'warn' : 'bad']);
+      var NOTE = {
+        'Trời đẹp ban ngày': 'Điều kiện tốt: mỗi cảm biến chỉ bị giới hạn bởi tầm và góc nhìn của nó, nên cần nhiều loại để phủ hết.',
+        'Ban đêm': 'Camera cần ánh sáng nên nhiễu tăng, vật tối và người đi bộ mất trước. LiDAR và radar tự phát sóng nên không bị ảnh hưởng.',
+        'Mưa lớn': 'Giọt mưa phản xạ tia laser thành điểm giả sát xe và làm giảm tầm LiDAR; nước trên kính làm camera mờ. Radar bước sóng milimét gần như không bị ảnh hưởng.',
+        'Sương mù': 'Giọt sương cỡ micromet tán xạ mạnh ánh sáng nhìn thấy và tia laser hồng ngoại gần, nên camera và LiDAR gần như mù; sóng radar dài cỡ milimét đi xuyên qua.',
+        'Chói nắng ngược chiều': 'Mặt trời thấp ngay phía trước làm điểm ảnh cháy sáng: camera mất đúng các vật ngay trước mặt. LiDAR chỉ hơi nhiễu, radar không ảnh hưởng.',
+        'Cảm biến bị bẩn (bùn)': 'Bùn che ống kính, cửa sổ LiDAR, mặt radar và đầu sonar: mọi cảm biến cùng xuống cấp. Health check phải phát hiện và hệ thống hành động theo mức S0–S3.',
+      };
+      rows.push(['Đọc là', NOTE[env]]);
+      out(ui, rows);
+    }
+    draw();
+  },
+};
+
 // Day 19 · Lệch do thời gian và lệch do góc lắp
-SIMS.day19 = {
+var TIMING_SIM = {
   title: 'Vật lệch chỗ: do đồng hồ hay do góc lắp?',
   intro: 'Nhìn từ trên xuống. Một xe máy chạy ngang qua trước xe ở khoảng cách d. Camera thấy vị trí thật (hộp xanh); LiDAR báo vị trí lệch (hộp cam) vì hai lỗi: timestamp lệch Δt (vật đã đi thêm v·Δt) và LiDAR lắp lệch góc Δθ (lệch d·tan Δθ). Trục ngang được phóng to để thấy rõ độ lệch.',
   tries: ['Giữ mặc định 50 km/h, 50 ms: lệch khoảng 0,7 m như slide.', 'Kéo tốc độ về 0: phần lệch do thời gian biến mất. Lệch đổi theo tốc độ là dấu hiệu của đồng bộ thời gian.', 'Đặt góc lệch 1° rồi kéo d từ 30 lên 60 m: lệch do góc tăng gấp đôi theo khoảng cách, không đổi theo tốc độ: dấu hiệu của extrinsic.', 'Đặt góc 1°, d = 30 m, tốc độ 35 km/h: hai lỗi gần như triệt tiêu nhau. Một bài test ở đúng một tốc độ có thể "đẹp" mà hệ vẫn sai.', 'Bật "Bù thời gian": nội suy về thời điểm chung, phần lệch do Δt về 0.'],
@@ -169,6 +295,7 @@ SIMS.day19 = {
     draw();
   },
 };
+SIMS.day19 = [SENSOR_SIM, TIMING_SIM];
 
 // Day 20 · Kalman 1 chiều
 SIMS.day20 = {

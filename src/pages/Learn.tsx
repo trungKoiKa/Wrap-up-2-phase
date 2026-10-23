@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import FlashCards from '../components/lesson/FlashCards'
 import '../components/lesson/lesson.css'
-import { annotateLesson, annotateOverview, annotators, hasDeep } from '../components/lesson/annotate'
+import { annotateLesson, annotateOverview, annotators, hasDeep, simList } from '../components/lesson/annotate'
 import Rich from '../components/lesson/Rich'
 import SimHost from '../components/lesson/SimHost'
 import Tex from '../components/lesson/Tex'
@@ -333,8 +333,8 @@ function PracticeDay({ d }: { d: Lesson }) {
 }
 
 function Day({ d, book, known, onToggleKnown }: { d: Lesson; book: Book; known: Known; onToggleKnown: (key: string) => void }) {
-  const sim = SIMS[d.id]
-  const a = useMemo(() => annotateLesson(d, sim, annotators[book.id]), [d, sim, book])
+  const sims = useMemo(() => simList(SIMS[d.id]), [d.id])
+  const a = useMemo(() => annotateLesson(d, sims, annotators[book.id]), [d, sims, book])
   const idx = book.lessons.indexOf(d)
   const prev = book.lessons[idx - 1]
   const next = book.lessons[idx + 1]
@@ -458,12 +458,14 @@ function Day({ d, book, known, onToggleKnown }: { d: Lesson; book: Book; known: 
         <ConceptList d={d} a={a} enFirst={book.enFirst} deep={false} />
       </section>
 
-      {sim && a.sim && (
+      {sims.length > 0 && (
         <section className="lsec">
           <h3>
             Thử tay <small>mô phỏng tương tác: kéo, bấm và quan sát</small>
           </h3>
-          <SimHost id={d.id} sim={sim} text={a.sim} />
+          {sims.map((sim, i) => (
+            <SimHost key={i} id={`${d.id}-${i}`} sim={sim} text={a.sims[i]} />
+          ))}
         </section>
       )}
 
