@@ -2,7 +2,7 @@ import katex from 'katex'
 import { describe, expect, it } from 'vitest'
 import { SIMS as SIMS_CV } from '../../lessons/sims.js'
 import { SIMS as SIMS_P1 } from '../../lessons/sims-p1.js'
-import { annotateLesson, annotators } from '../../components/lesson/annotate'
+import { annotateLesson, annotators, simList } from '../../components/lesson/annotate'
 import { BANK_PARTS } from '../../types'
 import { BOOK_BY_ID, BOOK_OF_LESSON, BOOKS, LESSON_BY_ID, LESSONS } from './index'
 
@@ -70,10 +70,12 @@ describe('lesson books', () => {
 
       it('every lesson has a simulation', () => {
         for (const d of book.lessons) {
-          const s = SIMS[d.id]
-          expect(s, d.id).toBeDefined()
-          expect(s.tries.length, d.id).toBeGreaterThan(0)
-          expect(typeof s.build, d.id).toBe('function')
+          const list = simList(SIMS[d.id])
+          expect(list.length, d.id).toBeGreaterThan(0)
+          for (const s of list) {
+            expect(s.tries.length, d.id).toBeGreaterThan(0)
+            expect(typeof s.build, d.id).toBe('function')
+          }
         }
       })
 
@@ -94,7 +96,7 @@ describe('lesson books', () => {
 
       it('every annotated lesson keeps one entry per concept and formula', () => {
         for (const d of book.lessons) {
-          const a = annotateLesson(d, SIMS[d.id], annotators[book.id])
+          const a = annotateLesson(d, simList(SIMS[d.id]), annotators[book.id])
           expect(Object.keys(a.concepts).length, d.id).toBe(d.concepts.length)
           expect(Object.keys(a.formulas).length, d.id).toBe(d.formulas.length)
           expect(a.rows, d.id).toHaveLength(d.table.rows.length)

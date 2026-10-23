@@ -370,8 +370,8 @@ export const DAYS: Lesson[] = [
       {
         "t": "Sáu bài toán 2D",
         "en": "classification → keypoints",
-        "d": "Phân loại (1 nhãn), phát hiện (hộp + lớp), phân đoạn ngữ nghĩa (lớp mỗi pixel), phân đoạn thực thể (mặt nạ mỗi vật), panoptic (cả hai), keypoint (điểm khớp).",
-        "ex": "Camera đếm xe và biết vùng mặt đường → panoptic."
+        "d": "Classification (phân loại: cả ảnh một nhãn) · object detection (phát hiện vật thể: hộp + lớp cho từng vật) · semantic segmentation (phân đoạn ngữ nghĩa: lớp cho mỗi pixel) · instance segmentation (phân đoạn thực thể: mặt nạ riêng cho từng vật) · panoptic segmentation (phân đoạn toàn cảnh: gộp cả hai) · keypoint detection / pose estimation (dò điểm khớp, ước lượng tư thế).",
+        "ex": "Camera vừa đếm từng xe vừa biết vùng mặt đường → panoptic segmentation (phân đoạn toàn cảnh)."
       },
       {
         "t": "IoU",

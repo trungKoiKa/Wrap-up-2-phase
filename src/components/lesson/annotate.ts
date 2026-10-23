@@ -15,13 +15,18 @@ export interface AnnotatedLesson {
   map: { does: Seg[]; eg: Seg[] }[]
   steps: Seg[][]
   concepts: { d: Seg[]; ex: Seg[] }[]
-  sim: { intro: Seg[]; tries: Seg[][] } | null
+  sims: { intro: Seg[]; tries: Seg[][] }[]
   formulas: { read: Seg[]; ex: Seg[] }[]
   rows: Seg[][][]
   traps: Seg[][]
   remember: Seg[][]
   deepTraps: Seg[][]
   cards: [Seg[], Seg[]][]
+}
+
+/** Một buổi có thể có một mô phỏng hoặc một mảng nhiều mô phỏng. */
+export function simList(s: SimSpec | SimSpec[] | undefined): SimSpec[] {
+  return !s ? [] : Array.isArray(s) ? s : [s]
 }
 
 /** Buổi có phần "Đào sâu" không (khái niệm, công thức, bảng hoặc bẫy được đánh dấu deep). */
@@ -34,7 +39,7 @@ export function hasDeep(d: Lesson) {
  * thuộc số lần React render. Các câu lệnh bên dưới chạy đúng thứ tự các phần xuất hiện trên trang
  * (phần Cốt lõi trước, phần Đào sâu sau), để mỗi thuật ngữ được giải thích ở lần đọc thấy đầu tiên.
  */
-export function annotateLesson(d: Lesson, sim: SimSpec | undefined, annotator: Annotator): AnnotatedLesson {
+export function annotateLesson(d: Lesson, sims: SimSpec[], annotator: Annotator): AnnotatedLesson {
   const seen = new Set<string>()
   const a = (s: string) => annotator.annotate(s, seen)
   const concepts: AnnotatedLesson['concepts'] = []
@@ -62,7 +67,7 @@ export function annotateLesson(d: Lesson, sim: SimSpec | undefined, annotator: A
   // buổi có bản đồ thì bản đồ thay cho lộ trình, nên không chú giải (và không hiện) steps
   const steps = d.map ? [] : d.steps.map(a)
   doConcepts(false)
-  const simText = sim ? { intro: a(sim.intro), tries: sim.tries.map(a) } : null
+  const simText = sims.map((sim) => ({ intro: a(sim.intro), tries: sim.tries.map(a) }))
   doFormulas(false)
   let rows = d.table.deep ? [] : d.table.rows.map((r) => r.map(a))
   const traps = d.traps.map(a)
@@ -73,7 +78,7 @@ export function annotateLesson(d: Lesson, sim: SimSpec | undefined, annotator: A
   const deepTraps = (d.deepTraps ?? []).map(a)
   const cards = d.cards.map(([q, ans]): [Seg[], Seg[]] => [a(q), a(ans)])
 
-  return { question, prereq, analogy, why, thread, map, steps, concepts, sim: simText, formulas, rows, traps, remember, deepTraps, cards }
+  return { question, prereq, analogy, why, thread, map, steps, concepts, sims: simText, formulas, rows, traps, remember, deepTraps, cards }
 }
 
 export function annotateOverview(o: Overview, annotator: Annotator) {
