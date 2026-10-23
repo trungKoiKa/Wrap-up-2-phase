@@ -1,5 +1,5 @@
 /** 1–4: đề giữa kỳ; 16–27: bài giảng Phase 2 (số = ngày học) */
-export type Part = 1 | 2 | 3 | 4 | 16 | 17 | 18 | 20 | 22 | 23 | 24 | 25 | 26 | 27
+export type Part = 1 | 2 | 3 | 4 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27
 
 export const PART_LABEL: Record<Part, string> = {
   1: 'Kiến thức nền tảng',
@@ -9,7 +9,9 @@ export const PART_LABEL: Record<Part, string> = {
   16: 'Day 16 · Mạng nơ-ron & huấn luyện',
   17: 'Day 17 · Kiến trúc thị giác',
   18: 'Day 18 · 2D Perception',
+  19: 'Day 19 · Cảm biến, hiệu chuẩn & đồng bộ thời gian',
   20: 'Day 20 · Kalman & hợp nhất xác suất',
+  21: 'Day 21 · 3D từ point cloud',
   22: 'Day 22 · Tracking',
   23: 'Day 23 · 3D, BEV & Sensor fusion',
   24: 'Day 24 · Data & Annotation',
@@ -28,7 +30,7 @@ export const BANK_LABEL: Record<Bank, string> = {
 
 export const BANK_PARTS: Record<Bank, Part[]> = {
   midterm: [1, 2, 3, 4],
-  cv: [16, 17, 18, 20, 22, 23, 24, 25, 26, 27],
+  cv: [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27],
 }
 
 /** Mức ưu tiên khi ôn: 1 cốt lõi (phải nắm), 2 quan trọng, 3 chi tiết/số liệu. */

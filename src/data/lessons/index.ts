@@ -46,7 +46,7 @@ export const BOOKS: Book[] = [
     id: 'cv',
     tab: 'Phase 2',
     name: 'CV & Perception',
-    heading: 'Mười buổi, một chiếc xe biết nhìn',
+    heading: 'Mười hai buổi, một chiếc xe biết nhìn',
     lessons: DAYS,
     overview: OVERVIEW,
     glossary: GLOSSARY,

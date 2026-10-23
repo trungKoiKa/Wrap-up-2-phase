@@ -519,6 +519,184 @@ export const DAYS: Lesson[] = [
     ]
   },
   {
+    "id": "day19",
+    "part": 19,
+    "n": 19,
+    "title": "Cảm biến, hiệu chuẩn & đồng bộ thời gian",
+    "question": "Trước khi đổ lỗi cho mô hình: cảm biến có đang đo đúng không, đo lúc nào, ở hệ trục nào, và khung hình này còn đủ tốt để tin không?",
+    "analogy": "Một đội điều tra có ba nhân chứng: một người tinh mắt nhưng kém lúc trời tối (camera), một người đo khoảng cách bằng thước rất chuẩn nhưng sợ sương mù (LiDAR), một người nghe tiếng xe chạy nhanh hay chậm ngay cả khi mưa (radar). Muốn ghép lời khai đúng, phải biết mỗi người đứng ở đâu (hiệu chuẩn), mỗi lời khai nói về lúc mấy giờ (đồng bộ thời gian), và hôm nay ai đang mệt, nói kém tin cậy (sức khoẻ cảm biến).",
+    "why": "Trong dự án ADAS thật, mô hình AI chỉ là một phần. Chất lượng cảm biến, thời điểm đo, hiệu chuẩn, băng thông và theo dõi sức khoẻ cảm biến quyết định kết quả perception có dùng được ngoài đường hay không. Day 20 (Kalman) sẽ dùng đúng câu trả lời của buổi này: mỗi cảm biến đo gì và đáng tin bao nhiêu.",
+    "steps": [
+      "Cảm biến đo gián tiếp trạng thái thế giới: z = h(x) + nhiễu. Dữ liệu đi qua driver, đồng bộ, hiệu chuẩn rồi mới tới mô hình.",
+      "Chọn cảm biến theo tính năng, môi trường và giới hạn phần cứng: camera, LiDAR, radar, sonar/ToF mỗi loại mạnh một việc.",
+      "Biết cảm biến xuống cấp thế nào (mưa, sương, chói, rung, mất gói) và biến chất lượng thành con số để theo dõi.",
+      "Phân biệt ba lớp hiệu chuẩn: intrinsic, extrinsic và thời gian; nhìn kiểu lệch để đoán lớp nào sai.",
+      "Đồng bộ các cảm biến khác nhịp về một thời điểm chung và bù chuyển động trước khi hợp nhất."
+    ],
+    "concepts": [
+      {
+        "t": "Mô hình đo",
+        "en": "measurement model z = h(x) + noise",
+        "d": "Cảm biến không đưa ra \"sự thật\" x mà đưa ra phép đo z, là một hàm h của trạng thái cộng với nhiễu. Hiểu h và nhiễu của từng cảm biến là bước đầu để ghép chúng lại.",
+        "ex": "Radar đo khoảng cách và vận tốc hướng tâm; camera đo điểm ảnh; cả hai đều chỉ là \"hình chiếu\" nhiễu của vị trí thật của chiếc xe phía trước."
+      },
+      {
+        "t": "Chọn cảm biến theo nhiệm vụ",
+        "en": "camera · LiDAR · radar · sonar / ToF",
+        "d": "Không có cảm biến \"tốt nhất\", chỉ có cảm biến hợp với nhiệm vụ, môi trường, ngân sách, sức tính và mục tiêu an toàn. Camera giỏi nhận dạng (người, xe, biển báo, làn); LiDAR giỏi khoảng cách 3D chính xác; radar đo vận tốc, nhìn xa và chịu mưa sương tốt; sonar/ToF rẻ, dùng ở cự ly gần.",
+        "ex": "AEB cần nhận ra người đi bộ (camera) và biết khoảng cách, tốc độ chính xác (LiDAR, radar). Đỗ xe dùng sonar; drone hạ cánh dùng rangefinder ToF."
+      },
+      {
+        "t": "Các loại camera",
+        "en": "mono · stereo · fisheye · thermal · event camera",
+        "d": "Mono RGB rẻ, giàu màu nhưng yếu khi chói, đêm, mưa. Stereo cho độ sâu nhưng cần bề mặt có vân và khoảng cách hai ống kính. Fisheye nhìn rộng, méo mạnh nên cần hiệu chuẩn kỹ. Thermal thấy người đi bộ ban đêm. Event camera phản ứng rất nhanh, dải sáng rộng, nhưng dữ liệu thưa và khó xử lý.",
+        "ex": "Camera trước của xe ADAS cần màn trập nhanh hoặc global shutter cùng HDR; robot trong nhà có thể dùng RGB-D; drone nhỏ ưu tiên camera nhẹ + optical flow + rangefinder."
+      },
+      {
+        "t": "Màn trập cuốn",
+        "en": "rolling shutter vs global shutter",
+        "d": "Rolling shutter đọc ảnh từng hàng một, nên khi xe rung hoặc quay nhanh, vật thẳng đứng bị nghiêng theo hàng quét. Global shutter chụp mọi điểm ảnh cùng lúc.",
+        "ex": "Cột điện và vạch làn bị nghiêng khi drone xoay nhanh: dấu hiệu rolling shutter, không phải lỗi detector."
+      },
+      {
+        "t": "Radar và các kiểu radar",
+        "en": "SRR / MRR / LRR · 4D imaging radar",
+        "d": "Radar đo khoảng cách và vận tốc (Doppler), giữ được khi mưa, sương. Radar tầm ngắn cho đỗ xe, điểm mù; tầm trung/xa cho ACC, AEB trên cao tốc nhưng phân giải góc kém hơn camera, LiDAR. Radar 4D đo thêm góc ngẩng.",
+        "ex": "Trong mưa, radar vẫn giữ được khoảng cách tới xe phía trước, nhưng cầu, rào chắn, xe lớn có thể tạo \"bóng ma\" do phản xạ nhiều đường (multipath)."
+      },
+      {
+        "t": "Thang suy giảm",
+        "en": "sensor degradation ladder",
+        "d": "Lỗi đi từ vật lý (mưa, sương, rung, chói, nước trên ống kính) → tín hiệu (mờ, nhiễu, mất điểm, bóng ma radar) → nhận thức (sai hộp, bỏ sót vật) → thời gian (đổi ID, rung, vật ma) → tính năng (phanh muộn, hạ cánh sai). Suy giảm không chỉ làm giảm mAP mà phá giả định của tracking, hợp nhất và điều khiển.",
+        "ex": "Ống kính bị bùn che một góc → detector bỏ sót người đi bộ ở góc đó → tracker mất ID → AEB phanh muộn."
+      },
+      {
+        "t": "Theo dõi sức khoẻ cảm biến",
+        "en": "sensor health monitoring",
+        "d": "Biến chất lượng cảm biến thành con số ghi log cùng timestamp: camera (độ sáng, tỷ lệ điểm cháy sáng, độ nét, rớt khung), LiDAR (mật độ điểm theo khoảng cách, số gói mỗi khung), radar (SNR, tỷ lệ bóng ma), sonar/ToF (giá trị kẹt, ngoài tầm), và chéo giữa các cảm biến (sai lệch chiếu camera–LiDAR).",
+        "ex": "Độ nét ảnh đo bằng phương sai Laplacian; số gói LiDAR mỗi khung tụt đột ngột báo mất gói trên đường truyền."
+      },
+      {
+        "t": "Bốn mức suy giảm",
+        "en": "S0 Normal · S1 Mild · S2 Degraded · S3 Critical",
+        "d": "Không phải lỗi nào cũng xử lý giống nhau. S0: dùng bình thường. S1: ghi cảnh báo, làm mượt thêm, giảm trọng số một chút. S2: đổi trọng số hợp nhất, yêu cầu xe/robot chạy chậm lại. S3: không tin cảm biến nữa, tắt tính năng hoặc chuyển chế độ an toàn.",
+        "ex": "Camera chói (S2) nhưng radar bình thường (S0) → vẫn bám vật bằng radar. LiDAR mất gói (S3) + camera mưa (S2) → giảm tốc hoặc chuyển chế độ an toàn."
+      },
+      {
+        "t": "Ba lớp hiệu chuẩn",
+        "en": "intrinsics · extrinsics · temporal calibration",
+        "d": "Intrinsic: tiêu cự, tâm ảnh, méo ống kính; sai thì chiếu sai ngay trong một ảnh. Extrinsic: phép biến đổi cứng giữa camera, LiDAR, radar, IMU và xe; sai thì hợp nhất lệch. Thời gian: độ lệch timestamp, độ trễ cảm biến; sai thì vật lệch theo vận tốc.",
+        "ex": "Đoán nhanh: lệch cố định → extrinsic; lệch tăng theo tốc độ → đồng bộ thời gian; mép ảnh cong, méo → intrinsic."
+      },
+      {
+        "t": "Đồng bộ thời gian và bù chuyển động",
+        "en": "time sync · motion compensation",
+        "d": "Camera 30 Hz, LiDAR 10 Hz, radar 20 Hz không đo cùng lúc. Phải ghi timestamp gốc, đo độ trễ từng khâu, rồi nội suy về một thời điểm hợp nhất chung và bù chuyển động của xe (deskew) trước khi ghép.",
+        "ex": "Không bù thời gian, vật đang chạy bị chiếu sai chỗ; tracker có thể tạo vật ma hoặc ghép nhầm."
+      }
+    ],
+    "formulas": [
+      {
+        "tex": "z = h(x) + v,\\qquad v \\sim \\mathcal{N}(0, R)",
+        "read": "Phép đo = hàm của trạng thái thật + nhiễu có phương sai R.",
+        "ex": "Day 20 dùng chính R này để quyết định tin cảm biến bao nhiêu."
+      },
+      {
+        "tex": "\\Delta p = v\\,\\Delta t",
+        "read": "Lệch thời gian Δt làm vật đang chạy với vận tốc v bị đặt sai chỗ một đoạn v·Δt.",
+        "ex": "50 km/h ≈ 13,9 m/s; lệch 50 ms → khoảng 0,7 m. Thử ở mô phỏng."
+      },
+      {
+        "tex": "e \\approx d\\,\\tan\\Delta\\theta",
+        "read": "Lắp lệch một góc nhỏ Δθ làm điểm ở khoảng cách d lệch ngang một đoạn e, càng xa càng lệch nhiều.",
+        "ex": "Lệch 1° ở 30 m: 30 × tan 1° ≈ 0,52 m, như nhau dù xe đứng yên hay chạy."
+      },
+      {
+        "tex": "B = \\text{FPS} \\times W \\times H \\times \\text{bit depth}",
+        "read": "Băng thông thô cần cho một camera = số khung mỗi giây × số điểm ảnh × số bit mỗi điểm.",
+        "ex": "1920 × 1080, 12 bit, 30 fps ≈ 746 Mbit/s: đã sát mức 1 Gbit/s của cổng GigE."
+      },
+      {
+        "tex": "x(t) = x(t_0) + \\dfrac{t - t_0}{t_1 - t_0}\\,\\bigl(x(t_1) - x(t_0)\\bigr)",
+        "read": "Nội suy tuyến tính: ước lượng giá trị ở thời điểm hợp nhất t nằm giữa hai lần đo t₀ và t₁.",
+        "ex": "LiDAR đo lúc 0 và 0,1 s; ảnh chụp lúc 0,03 s → lấy 30% đoạn đường giữa hai lần quét."
+      },
+      {
+        "tex": "\\text{độ nét} = \\operatorname{Var}\\!\\bigl(\\nabla^2 I\\bigr)",
+        "read": "Phương sai của ảnh sau phép Laplacian: ảnh mờ ít cạnh nên phương sai thấp.",
+        "ex": "Ngưỡng phải chọn theo từng camera và từng loại cảnh; nên ghi kèm timestamp để sau này lọc khung hình xấu."
+      }
+    ],
+    "table": {
+      "title": "Bốn mức suy giảm và hành động",
+      "cols": [
+        "Mức",
+        "Tình trạng",
+        "Hệ thống làm gì"
+      ],
+      "rows": [
+        [
+          "S0 Normal",
+          "Cảm biến khoẻ",
+          "Dùng độ tin và output bình thường"
+        ],
+        [
+          "S1 Mild",
+          "Nhiễu nhẹ",
+          "Ghi cảnh báo, làm mượt thêm, giảm trọng số một chút"
+        ],
+        [
+          "S2 Degraded",
+          "Ảnh hưởng rõ tới output",
+          "Đổi model hoặc trọng số hợp nhất, yêu cầu chạy chậm lại"
+        ],
+        [
+          "S3 Critical",
+          "Không còn tin được",
+          "Tắt tính năng hoặc chuyển chế độ an toàn"
+        ]
+      ]
+    },
+    "traps": [
+      "Đo FPS chưa đủ: phải đo độ trễ đầu–cuối, vì hàng đợi có thể làm khung hình đến muộn dù FPS vẫn đẹp.",
+      "Đừng tin một lần đo đơn lẻ của radar hay sonar: cần lọc, yêu cầu xuất hiện liên tục, gating và cảm biến dự phòng.",
+      "Hiệu chuẩn bằng bảng caro trong lab chính xác nhưng không mở rộng được cho cả đội xe; xe chạy ngoài đường cần hiệu chuẩn lại khi rung, tháo lắp, va chạm.",
+      "Auto-label từ nhiều cảm biến sai theo nếu hiệu chuẩn hoặc đồng bộ thời gian sai.",
+      "Mô hình tốt trên benchmark sạch vẫn có thể hỏng trên cảm biến bẩn, lệch, không đồng bộ."
+    ],
+    "remember": [
+      "Trước khi đổ lỗi cho mô hình: cảm biến đo đúng chưa, timestamp đúng chưa, khung hình này còn đủ tốt chưa.",
+      "Lệch cố định → extrinsic; lệch theo tốc độ → thời gian; méo ảnh → intrinsic.",
+      "Biến chất lượng cảm biến thành con số và mức S0–S3, mỗi mức có hành động riêng."
+    ],
+    "cards": [
+      [
+        "Vì sao không có cảm biến \"tốt nhất\"?",
+        "Mỗi loại mạnh một việc; chọn theo tính năng, môi trường, ngân sách, sức tính, mục tiêu an toàn."
+      ],
+      [
+        "Vật lệch vị trí nhiều hơn khi xe chạy nhanh: nghi lớp hiệu chuẩn nào?",
+        "Hiệu chuẩn thời gian (lệch timestamp, độ trễ)."
+      ],
+      [
+        "Radar dễ sinh bóng ma ở đâu?",
+        "Gần cầu, rào chắn, xe lớn: phản xạ nhiều đường (multipath)."
+      ],
+      [
+        "Đo độ mờ ảnh bằng gì?",
+        "Phương sai Laplacian (cùng với độ nhất quán optical flow)."
+      ],
+      [
+        "Camera chói ở S2 nhưng radar S0 thì sao?",
+        "Vẫn bám vật bằng radar, giảm trọng số camera."
+      ],
+      [
+        "Data loop dùng sức khoẻ cảm biến để làm gì?",
+        "Lọc đúng lát dữ liệu khó (đêm, mưa, mất điểm, chói) để gán nhãn, huấn luyện lại và benchmark."
+      ]
+    ]
+  },
+  {
     "id": "day20",
     "part": 20,
     "n": 20,
@@ -671,6 +849,201 @@ export const DAYS: Lesson[] = [
       [
         "Radar và camera bù nhau thế nào?",
         "Radar chính xác theo tia nhìn, camera chính xác theo góc ngang."
+      ]
+    ]
+  },
+  {
+    "id": "day21",
+    "part": 21,
+    "n": 21,
+    "title": "3D từ point cloud",
+    "question": "Từ hàng trăm nghìn điểm LiDAR thô, làm sao ra được hộp 3D đúng vị trí, chiếu khớp lên ảnh camera, và biết con số benchmark có đáng tin không?",
+    "analogy": "Point cloud giống một bức tượng được phủ bằng hàng trăm nghìn hạt bụi phát sáng: hình dáng có đủ nhưng không có màu, càng xa càng thưa. Muốn máy hiểu, ta gom bụi vào các ô (voxel) hoặc các cột (pillar), nhìn từ trên xuống (BEV), rồi khoanh từng vật bằng hộp 3D. Muốn mượn màu và ngữ nghĩa của camera, ta phải \"rọi\" từng hạt bụi lên bức ảnh, và chỉ cần rọi lệch một chút là cả bức tranh sai.",
+    "why": "Một detector tốt vẫn hỏng nếu dữ liệu trước nó lệch 2 cm, trễ 50 ms hoặc sai trục. Buổi này nối cảm biến, hiệu chuẩn, thời gian (Day 19, Day 20) với perception 3D; hộp 3D và BEV sẽ được dùng lại cho tracking (Day 22) và hợp nhất BEV (Day 23).",
+    "steps": [
+      "Hiểu một khung point cloud: mỗi điểm có x, y, z, intensity, ring, time offset; đọc đúng định dạng và đúng hệ trục.",
+      "Tiền xử lý: cắt vùng, bỏ điểm lỗi, bù chuyển động (deskew), gộp nhiều lần quét, chia voxel.",
+      "Chọn cách biểu diễn: point-based, voxel + sparse conv, pillar/BEV, range image; mỗi cách là một đánh đổi tốc độ – độ chi tiết.",
+      "Phát hiện vật 3D bằng PointPillars hoặc CenterPoint, ra hộp 3D theo một quy ước rõ ràng; đọc metric theo lát.",
+      "Chiếu LiDAR lên camera bằng K·[R | t] để kiểm tra hiệu chuẩn, hỗ trợ gán nhãn và hợp nhất."
+    ],
+    "concepts": [
+      {
+        "t": "Một điểm LiDAR",
+        "en": "point fields: x, y, z · intensity · ring · time offset",
+        "d": "Mỗi điểm không chỉ có tọa độ. Intensity cho biết độ phản xạ của vật liệu; ring cho biết tia laser nào tạo ra điểm; time offset là thời điểm của điểm trong một vòng quét, cần để bù chuyển động; return type cho biết phản xạ đầu, mạnh nhất hay cuối.",
+        "ex": "Thiếu cả một ring → nghi tia hỏng hoặc mưa sương; thiếu time offset → không deskew được khi xe quay nhanh."
+      },
+      {
+        "t": "Hệ trục và phép biến đổi",
+        "en": "coordinate frames · T_camera_lidar",
+        "d": "LiDAR, camera, IMU, xe (ego) và bản đồ có trục khác nhau. Camera thường x phải, y xuống, z tới trước; LiDAR tùy driver và dataset. Mọi thứ phải về cùng một hệ, cùng đơn vị mét và radian, trước khi học.",
+        "ex": "Test 5 phút: một điểm cách xe 10 m phía trước, sau biến đổi phải vẫn ở phía trước; chiếu lên camera phải nằm trong ảnh và có độ sâu dương."
+      },
+      {
+        "t": "Tiền xử lý",
+        "en": "crop · deskew · multi-sweep · voxelize",
+        "d": "Cắt vùng theo tầm nhìn, bỏ NaN/Inf, bù chuyển động theo time offset, có thể bỏ mặt đường, gộp 2–10 lần quét, rồi chia voxel. Mỗi bước là một đánh đổi giữa độ trễ, khả năng thấy vật nhỏ và bộ nhớ.",
+        "ex": "Cắt quá hẹp → bỏ sót người đi bộ ở rìa. Không deskew → xe quay nhanh làm vật bị kéo dài. Gộp nhiều lần quét mà sai pose → vật ma, vật nhân đôi."
+      },
+      {
+        "t": "Cách biểu diễn point cloud",
+        "en": "point-based · voxel · pillar / BEV · range image",
+        "d": "Point-based học thẳng trên điểm, giữ chi tiết nhưng khó chạy realtime. Voxel + sparse convolution chính xác, tận dụng tính cục bộ nhưng tốn bộ nhớ theo độ phân giải. Pillar/BEV gộp chiều cao thành cột nên rất nhanh, dùng được CNN 2D nhưng mất chi tiết theo chiều đứng. Range image xếp điểm theo tia quét.",
+        "ex": "Trong ADAS, detector thường dùng voxel hoặc pillar để đạt độ trễ; point-based hay gặp ở bước tinh chỉnh hộp hoặc phân đoạn."
+      },
+      {
+        "t": "Voxel hoá",
+        "en": "voxel_size · point_cloud_range · max_points_per_voxel",
+        "d": "Chia không gian thành các ô 3D đều nhau để dữ liệu thưa thành tensor có cấu trúc. Voxel to thì nhanh nhưng mất vật nhỏ; voxel nhỏ thì chính xác hơn nhưng bộ nhớ và độ trễ tăng vọt.",
+        "ex": "Đổi voxel_size hay point_cloud_range mà không đo lại độ trễ và lát vật nhỏ thì chưa đủ bằng chứng; kết quả cũng không còn so sánh công bằng với checkpoint cũ."
+      },
+      {
+        "t": "PointPillars",
+        "en": "PointPillars",
+        "d": "Pillar là voxel không chia theo chiều cao. Mỗi cột được mã hoá bằng một PointNet nhỏ, xếp thành một \"ảnh giả\" nhìn từ trên xuống, rồi đưa qua CNN 2D và đầu dò hộp. Là baseline nhanh, dễ chạy demo.",
+        "ex": "AP của người đi bộ, xe đạp thấp → kiểm tra mật độ điểm, vùng cắt và augmentation trước khi đổi mô hình."
+      },
+      {
+        "t": "Đầu dò theo tâm",
+        "en": "center-based head (CenterPoint)",
+        "d": "Thay vì thử mọi hộp neo (anchor), mạng vẽ một bản đồ nhiệt (heatmap) đánh dấu tâm vật trên BEV, rồi hồi quy kích thước, độ cao z, góc yaw và vận tốc. Tâm vật cũng giúp nối với tracking bằng cách ghép tâm gần nhất.",
+        "ex": "Khi debug: tâm trên heatmap có lệch không, yaw có bị quấn quanh ±π không, vận tốc từ nhiều lần quét có đúng hệ và đúng thời gian không."
+      },
+      {
+        "t": "Quy ước hộp 3D",
+        "en": "3D box convention: x, y, z, dx, dy, dz, yaw",
+        "d": "Hộp 3D gồm tâm, ba kích thước và góc yaw (cộng lớp, điểm, vận tốc). Dataset khác nhau dùng tâm hộp hay tâm đáy, thứ tự kích thước và trục yaw khác nhau. Mô hình đúng mà đánh giá sai nếu quy ước không khớp.",
+        "ex": "Hộp lơ lửng hoặc chui xuống đất → lẫn tâm và tâm đáy; xe xoay 90° → đảo dx, dy hoặc sai trục yaw; hộp khổng lồ → lẫn cm và m."
+      },
+      {
+        "t": "Metric 3D và lát đánh giá",
+        "en": "KITTI AP · nuScenes NDS · slices",
+        "d": "KITTI chấm AP theo 2D, BEV, 3D với ngưỡng IoU, lớp và độ khó. nuScenes NDS kết hợp mAP với các lỗi vị trí, kích thước, hướng, vận tốc, thuộc tính. Ngoài ra cần độ trễ p50/p95 và lát theo khoảng cách, lớp, che khuất, thời tiết.",
+        "ex": "mAP cao chưa đủ an toàn: phải xem riêng 0–20 m, 20–50 m, trên 50 m và người đi bộ gần xe."
+      },
+      {
+        "t": "Chiếu LiDAR lên camera",
+        "en": "LiDAR–camera projection K·[R | t]",
+        "d": "Biến điểm LiDAR sang hệ camera bằng extrinsic [R | t], bỏ điểm có độ sâu không dương, rồi chiếu bằng intrinsic K ra điểm ảnh (u, v). Là bài test hiệu chuẩn rẻ nhất: điểm phải bám vào xe, cột, mép đường trên ảnh.",
+        "ex": "Phủ điểm lên ảnh theo độ sâu; đo thêm sai số chiếu lại (reprojection error) và độ khớp cạnh theo thời gian. Thử ở mô phỏng."
+      },
+      {
+        "t": "Cách ghép camera và LiDAR",
+        "en": "point painting · frustum · BEV fusion · late fusion",
+        "d": "Point painting: chiếu điểm vào ảnh để lấy nhãn ngữ nghĩa rồi đưa lại vào detector 3D. Frustum: detector 2D khoanh vùng, LiDAR tinh chỉnh. BEV fusion: đưa đặc trưng camera lên BEV rồi ghép với LiDAR. Late fusion: ghép kết quả cuối, dễ tích hợp nhưng khó tận dụng tương tác sâu.",
+        "ex": "Ghép sớm nhạy với lệch hiệu chuẩn và chất lượng ảnh; ghép không tự làm hệ an toàn hơn nếu một cảm biến xấu mà không ai phát hiện."
+      }
+    ],
+    "formulas": [
+      {
+        "tex": "s\\begin{bmatrix}u\\\\v\\\\1\\end{bmatrix} = K\\,[R \\mid t]\\begin{bmatrix}x\\\\y\\\\z\\\\1\\end{bmatrix}",
+        "read": "Điểm 3D nhân với extrinsic [R | t] để sang hệ camera, nhân với intrinsic K để ra điểm ảnh; s là độ sâu.",
+        "ex": "Đảo nhầm T_cam_lidar với T_lidar_cam là lỗi số một trong checklist."
+      },
+      {
+        "tex": "u = f_x\\,\\dfrac{X}{Z} + c_x,\\qquad v = f_y\\,\\dfrac{Y}{Z} + c_y",
+        "read": "Chiếu pinhole trong hệ camera: chia cho độ sâu Z, nhân tiêu cự, cộng tâm ảnh. Chỉ dùng khi Z > 0.",
+        "ex": "fx = 500, cx = 320, điểm X = 1 m, Z = 10 m → u = 370."
+      },
+      {
+        "tex": "f_x' = s\\,f_x,\\quad f_y' = s\\,f_y,\\quad c_x' = s\\,c_x,\\quad c_y' = s\\,c_y",
+        "read": "Đổi kích thước ảnh theo hệ số s thì phải đổi K theo cùng hệ số.",
+        "ex": "Thu ảnh 640 → 320 (s = 0,5): fx 500 → 250, cx 320 → 160. Quên bước này thì điểm bay khỏi vật."
+      },
+      {
+        "tex": "N_x = \\dfrac{x_{\\max} - x_{\\min}}{v_x}",
+        "read": "Số ô theo một trục = độ dài vùng cắt chia kích thước voxel.",
+        "ex": "Vùng −50…50 m: voxel 0,2 m → 500 ô mỗi trục; voxel 0,1 m → 1000 ô, tức gấp 4 lần số ô trên BEV."
+      },
+      {
+        "tex": "\\psi \\leftarrow \\operatorname{atan2}(\\sin\\psi,\\ \\cos\\psi)",
+        "read": "Đưa góc yaw về khoảng (−π, π] để hai hộp cùng hướng không bị coi là lệch gần 2π.",
+        "ex": "3,3 rad và −2,98 rad là cùng một hướng."
+      },
+      {
+        "tex": "\\text{NDS} = \\tfrac{1}{10}\\Bigl[5\\,\\text{mAP} + \\textstyle\\sum_{\\text{TP}}\\bigl(1 - \\min(1, \\text{lỗi})\\bigr)\\Bigr]",
+        "read": "Điểm nuScenes: một nửa từ mAP, nửa còn lại từ năm loại lỗi vị trí, kích thước, hướng, vận tốc, thuộc tính.",
+        "ex": "mAP 0,6 và cả năm lỗi bằng 0,3 → (3 + 3,5) / 10 = 0,65."
+      }
+    ],
+    "table": {
+      "title": "Chọn cách biểu diễn point cloud",
+      "cols": [
+        "Cách",
+        "Ý tưởng",
+        "Mạnh",
+        "Yếu"
+      ],
+      "rows": [
+        [
+          "Point-based",
+          "Học trực tiếp trên điểm",
+          "Giữ hình học tốt, chính xác",
+          "Khó gom batch, chậm khi nhiều điểm"
+        ],
+        [
+          "Voxel + sparse conv",
+          "Chia không gian 3D thành ô",
+          "Chính xác, khai thác tính cục bộ",
+          "Bộ nhớ tăng theo độ phân giải"
+        ],
+        [
+          "Pillar / BEV",
+          "Gộp chiều cao thành cột",
+          "Rất nhanh, dùng CNN 2D",
+          "Mất chi tiết theo chiều đứng"
+        ],
+        [
+          "Range image",
+          "Xếp điểm theo tia quét",
+          "Hiệu quả cho từng đường quét",
+          "Méo do chiếu, khó với che khuất"
+        ],
+        [
+          "BEV fusion",
+          "Gom đặc trưng các cảm biến lên BEV",
+          "Hợp với planner, tracking, hợp nhất",
+          "Cần hiệu chuẩn và đồng bộ tốt"
+        ]
+      ]
+    },
+    "traps": [
+      "Không lọc điểm có z_cam ≤ 0 thì điểm phía sau camera bị lật ra trước, thành vật ma trên ảnh.",
+      "Đổi kích thước ảnh mà không scale fx, fy, cx, cy; dùng ảnh gốc chưa khử méo với intrinsic của ảnh đã khử méo.",
+      "Đọc PointCloud2 bằng width × height mà quên row_step, hoặc đọc intensity sai offset: tạo ra benchmark giả.",
+      "Không so sánh paper nếu khác split, vùng cắt, bảng lớp, số lần quét hoặc script đánh giá.",
+      "Hợp nhất có thể lan truyền lỗi: nếu một cảm biến xấu mà không được phát hiện, kết quả ghép tệ hơn từng cảm biến."
+    ],
+    "remember": [
+      "Trước khi benchmark mô hình, hãy benchmark sức khoẻ dữ liệu: frame, timestamp, đơn vị, quy ước hộp.",
+      "Biểu diễn là đánh đổi: point giữ chi tiết, voxel chính xác, pillar/BEV nhanh.",
+      "Chiếu LiDAR lên ảnh là bài test hiệu chuẩn rẻ nhất; metric phải đọc theo lát và kèm failure case."
+    ],
+    "cards": [
+      [
+        "Trường nào cần để deskew point cloud?",
+        "Time offset của từng điểm trong vòng quét."
+      ],
+      [
+        "Pillar khác voxel ở đâu?",
+        "Pillar không chia theo chiều cao; cả cột thành một ô trên BEV."
+      ],
+      [
+        "Hộp 3D lơ lửng trên mặt đường: nghi gì trước?",
+        "Lẫn quy ước tâm hộp với tâm đáy (z center vs bottom)."
+      ],
+      [
+        "Thu nhỏ ảnh một nửa thì intrinsic đổi thế nào?",
+        "fx, fy, cx, cy đều nhân 0,5."
+      ],
+      [
+        "NDS khác mAP ở đâu?",
+        "Cộng thêm điểm từ các lỗi vị trí, kích thước, hướng, vận tốc, thuộc tính."
+      ],
+      [
+        "Thứ tự 6 lớp debug khi detector tệ?",
+        "I/O → hình học → thời gian → tiền xử lý → mô hình → metric."
       ]
     ]
   },
