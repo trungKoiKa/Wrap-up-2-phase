@@ -147,12 +147,12 @@ export const day24 = [
     ['Tên thư mục và ngày tạo', 'Số lượng ảnh và kích thước tệp', 'Tên người tạo dataset'],
     'Công cụ: DVC (tệp con trỏ trong Git), lakeFS (branch và commit cho object storage), HF Hub/Delta/Iceberg (repo, tag, snapshot).'),
 
-  q.single('26', 2, 'Trigger trên xe kiểu "shadow mode" lọc dữ liệu thế nào?',
+  q.single('26', 1, 'Trigger trên xe kiểu "shadow mode" lọc dữ liệu thế nào?',
     'Khi dự đoán của model lệch hành vi người lái quá ngưỡng, xe ghi một snapshot ngắn để tải lên xem lại',
     ['Ghi toàn bộ dữ liệu rồi lọc trên cloud', 'Chỉ ghi khi xe dừng hẳn', 'Ghi ngẫu nhiên 1% số khung'],
     'Quy tắc lọc chạy ngay trên xe: chỉ phần đáng xem mới được tải lên (IEEE Spectrum 2022 về Tesla).'),
 
-  q.single('27', 2, 'Tìm khung hình bằng câu "xe máy cắt ngang trong mưa" dùng cơ chế gì?',
+  q.single('27', 1, 'Tìm khung hình bằng câu "xe máy cắt ngang trong mưa" dùng cơ chế gì?',
     'CLIP/SigLIP đưa ảnh và câu chữ vào cùng không gian embedding, vector search (FAISS, pgvector, Milvus) lấy khung gần nhất, người duyệt trước khi đưa vào dataset',
     ['Tìm theo tên file chứa từ "mưa"', 'Chạy detector trên mọi khung rồi đếm xe máy', 'Gán nhãn tay toàn bộ log trước'],
     'Embedding search là bước curate trong data engine.'),
@@ -247,7 +247,7 @@ export const day24 = [
     ['Cho model dự đoán trên chính ảnh đã train rồi so', 'Đếm số người gán nhãn đồng ý', 'Loại mọi mẫu có loss cao nhất'],
     'Với detection, cờ gồm: thiếu object, box lệch, sai class. Ví dụ thật: 645 ảnh tên lửa trong ImageNet có khả năng bị gán class cha projectile.'),
 
-  q.single('45', 2, 'Thiên kiến tự động hoá (automation bias) trong gán nhãn là gì, và đo thế nào?',
+  q.single('45', 1, 'Thiên kiến tự động hoá (automation bias) trong gán nhãn là gì, và đo thế nào?',
     'Người duyệt dễ chấp nhận pre-label sai; đo bằng lỗi cấy trước, tập gold đối chứng không pre-label, tỷ lệ chấp nhận theo từng người',
     ['Máy gán nhãn chậm hơn người', 'Người duyệt luôn sửa mọi pre-label', 'Pre-label làm người gán nhãn mệt hơn'],
     'Bằng chứng gián tiếp: RCT 2 784 người cho thấy buộc sửa nâng độ chính xác 66% → 68% (tác vụ trích xuất văn bản; chưa có nghiên cứu cho 3D).'),

@@ -89,6 +89,13 @@ describe('Phase 2 CV bank', () => {
   it('every lecture has at least 40 questions', () => {
     for (const p of BANK_PARTS.cv) expect(cv.filter((q) => q.part === p).length, `day ${p}`).toBeGreaterThanOrEqual(40)
   })
+  it('every lecture has a compact core set (prio 1)', () => {
+    for (const p of BANK_PARTS.cv) {
+      const n = cv.filter((q) => q.part === p && q.prio === 1).length
+      expect(n, `day ${p}`).toBeGreaterThanOrEqual(18)
+      expect(n, `day ${p}`).toBeLessThanOrEqual(25)
+    }
+  })
   it('the priority filter narrows the pool', () => {
     const core = remainingIds(new Set(), { parts: BANK_PARTS.cv, prios: [1] })
     expect(core.length).toBeGreaterThan(0)

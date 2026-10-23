@@ -29,7 +29,7 @@ export const day23 = [
     ['Vì α luôn bằng 0 với xe đi thẳng', 'Vì θ không xác định được bằng toán học', 'Vì arctan rẻ hơn phép nhân ma trận'],
     'Cùng một θ, xe ở bên trái và bên phải ảnh trông khác nhau. α gắn với những gì mạng "thấy", nên dễ học hơn.'),
 
-  q.fill('06', 2, 'Mẹo đặt chân xuống mặt đường: f = 720, camera cao h = 1,65 m, chân vật ở 40 px dưới đường chân trời. Khoảng cách Z (mét, 1 chữ số thập phân)?', ['29,7', '29.7'],
+  q.fill('06', 1, 'Mẹo đặt chân xuống mặt đường: f = 720, camera cao h = 1,65 m, chân vật ở 40 px dưới đường chân trời. Khoảng cách Z (mét, 1 chữ số thập phân)?', ['29,7', '29.7'],
     'Z = f·h/(v − c_y) = 720·1,65/40 = 29,7 m. Lệch 1 px đã ra 29,0–30,5 m; gần đường chân trời 1 px đổi hàng chục mét. Đường dốc hoặc xe nhún làm công thức sai thêm.'),
 
   q.match('07', 2, 'Ghép hướng vượt nút thắt độ sâu với ví dụ.', [
@@ -47,7 +47,7 @@ export const day23 = [
     ['CaDDN', 'Phân phối depth rời rạc mỗi pixel → voxel → BEV, giám sát depth bằng LiDAR'],
   ], 'Khung chung: backbone + FPN, vài đầu hồi quy, rồi giải mã bằng hình học camera (K⁻¹).'),
 
-  q.single('09', 1, 'Uncertainty-weighted depth loss L = |z − ẑ|/σ + log σ mang lại gì?',
+  q.single('09', 2, 'Uncertainty-weighted depth loss L = |z − ẑ|/σ + log σ mang lại gì?',
     'Mạng tự đoán độ bất định σ: depth khó (vật xa, bị che) được giảm phạt thay vì ép đoán điều bất khả thi',
     ['Mạng luôn dự đoán depth bằng 0 khi không chắc', 'Loss không phụ thuộc depth nên hội tụ nhanh', 'Phạt nặng hơn các vật ở gần'],
     'Số hạng log σ ngăn mạng đặt σ vô hạn. Đây là lý do FCOS3D, MonoFlex, PGD chính xác hơn hẳn các bản đầu.'),
@@ -62,7 +62,7 @@ export const day23 = [
     ['Lật ảnh ngang nhưng giữ nguyên yaw', 'NMS bằng IoU 2D thẳng trục trên hộp xoay'],
     'Copy-paste một vật cũng phải scale lại kích thước theo phối cảnh. Các paper SOTA thường cộng dồn 4–5 mẹo nhỏ, mỗi mẹo 1–2% NDS/AP.'),
 
-  q.single('12', 1, 'nuScenes ghép dự đoán với GT theo tiêu chí nào khi tính mAP?',
+  q.single('12', 2, 'nuScenes ghép dự đoán với GT theo tiêu chí nào khi tính mAP?',
     'Khoảng cách tâm ở các ngưỡng 0,5 / 1 / 2 / 4 m',
     ['IoU 3D ≥ 0,7 cho xe', 'IoU 2D trên ảnh camera', 'Sai số hướng dưới 10°'],
     'KITTI dùng IoU 3D (xe 0,7), rất khắt khe. nuScenes cộng thêm 5 sai số TP: ATE, ASE, AOE, AVE, AAE.'),
@@ -131,7 +131,7 @@ export const day23 = [
     ['Radar luôn phát hiện được xe tải trắng', 'Camera tốt hơn radar trong mọi điều kiện', 'Chỉ cần thêm LiDAR là hết lỗi'],
     'NTSB xác nhận: xe tải không nhường đường, người lái mất tập trung, và không hệ thống hỗ trợ năm 2016 nào được thiết kế cho vật cắt ngang. Giả thuyết "radar lọc xe tải như biển báo phía trên" chưa được NTSB xác nhận.'),
 
-  q.single('24', 2, 'LiDAR đo khoảng cách bằng cách nào và có điểm yếu gì?',
+  q.single('24', 1, 'LiDAR đo khoảng cách bằng cách nào và có điểm yếu gì?',
     'Đo trực tiếp bằng thời gian bay laser; điểm thưa dần theo khoảng cách và có bóng che phía sau vật',
     ['Suy ra từ kích thước vật trong ảnh; yếu khi vật lạ', 'Đo bằng hiệu ứng Doppler; yếu khi vật đứng yên', 'Đo bằng stereo hai camera; yếu ban đêm'],
     'LiDAR giỏi vị trí, camera giỏi ngữ nghĩa. Detector LiDAR thường quy điểm về BEV (mật độ, chiều cao, cường độ) trước mạng 2D.'),
@@ -186,7 +186,7 @@ export const day23 = [
     ['Phép đo các cảm biến bị gộp thành một z_fused trước khi vào tracker', 'Mỗi cảm biến có một tracker riêng không bao giờ ghép', 'Chỉ dùng một cảm biến duy nhất'],
     'Mỗi phép đo mới (từ bất kỳ cảm biến nào) chạy predict rồi update. Bài Lab Day 23 dùng đúng cách này.'),
 
-  q.single('35', 2, 'Trong track-then-fuse, thêm một cảm biến mới cần gì?',
+  q.single('35', 1, 'Trong track-then-fuse, thêm một cảm biến mới cần gì?',
     'Thêm một hàm đo h(x) và ma trận nhiễu R, không đổi cấu trúc track',
     ['Thiết kế một hàm gộp cho từng cặp cảm biến', 'Huấn luyện lại toàn bộ mạng detector', 'Thêm một track riêng cho cảm biến đó'],
     'Sensor hỏng chỉ bỏ qua bước update đó, track vẫn chạy. Yêu cầu đồng bộ lỏng hơn fuse-then-track.'),
@@ -274,7 +274,7 @@ export const day23 = [
     ['Camera đo độ sâu trực tiếp như LiDAR', 'Sai số chủ yếu đến từ phân loại sai lớp', 'Chỉ cần một ảnh là đủ cho mọi khoảng cách'],
     'Đó là động lực của BEV, nhiều camera, nhiều frame và fusion với LiDAR/radar.'),
 
-  q.single('52', 2, 'Vì sao mid fusion (như BEVFusion) là xu hướng chủ đạo?',
+  q.single('52', 1, 'Vì sao mid fusion (như BEVFusion) là xu hướng chủ đạo?',
     'Cân bằng tốt nhất độ chính xác và độ bền: feature đã được làm sạch riêng từng cảm biến trước khi gộp',
     ['Không cần dữ liệu đồng bộ khi train', 'Không cần huấn luyện mạng nào', 'Chỉ dùng một cảm biến nên rẻ nhất'],
     'Đổi lại phải huấn luyện chung cả hai nhánh (tốn dữ liệu, compute) và vẫn cần dữ liệu hai cảm biến đồng bộ.'),

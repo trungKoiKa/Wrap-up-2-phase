@@ -92,6 +92,7 @@ ul.lkeep li::before { content: "✓"; color: var(--ok); font-weight: 700; margin
 .lbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; color: var(--muted); font-size: 0.88rem; }
 .lpractice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; border-radius: 16px; padding: 18px 20px; background: var(--primary-soft); }
 .lpractice > div { display: grid; gap: 4px; min-width: 0; flex: 1 1 320px; }
+.lpractice > .lpractice-btns { display: flex; flex-wrap: wrap; gap: 8px; flex: 0 1 auto; }
 .lpractice h3 { font-size: 1.08rem; font-weight: 700; }
 .lpractice p { color: var(--muted); font-size: 0.92rem; max-width: 60ch; }
 .lpager { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--border); }

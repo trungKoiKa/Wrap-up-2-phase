@@ -4,7 +4,7 @@ const q = maker(26)
 
 // Day 26 · Synthetic, Simulated & Trajectory Data
 export const day26 = [
-  q.single('01', 2, 'Vì sao "chờ" dữ liệu đuôi dài (ví dụ em bé chạy ra từ sau xe lúc chạng vạng, trời mưa) rất đắt?',
+  q.single('01', 1, 'Vì sao "chờ" dữ liệu đuôi dài (ví dụ em bé chạy ra từ sau xe lúc chạng vạng, trời mưa) rất đắt?',
     'Số lần gặp theo mô hình Poisson: với tần suất rất thấp, cần hàng trăm triệu km mới gặp đủ 100 lần',
     ['Vì cảm biến không ghi được cảnh trời mưa', 'Vì luật cấm ghi hình trẻ em', 'Vì cảnh đó luôn bị nhãn sai'],
     'Minh hoạ với λ = 0,2 lần/triệu km: cần khoảng 498 triệu km (trung vị) cho 100 lần. Hôm nay: trồng dữ liệu thay vì chờ nó, mà không tự lừa mình.'),
@@ -16,7 +16,7 @@ export const day26 = [
     ['Hành vi', 'Quỹ đạo, kịch bản'],
   ], 'Cả bốn hội tụ ở một câu hỏi: đo lợi ích thế nào cho trung thực.'),
 
-  q.tf('03', 1, 'Dữ liệu tổng hợp sẽ thay thế dữ liệu thật.', false,
+  q.tf('03', 2, 'Dữ liệu tổng hợp sẽ thay thế dữ liệu thật.', false,
     'Sai. Nó lấp chỗ dữ liệu thật không với tới, và mỗi bộ sinh có phân phối riêng. Quy tắc: huấn luyện trên hỗn hợp, kết luận chỉ từ test thật độc lập.'),
 
   q.single('04', 1, 'Vì sao không được đánh giá model trên test set có lẫn dữ liệu sinh?',
@@ -32,7 +32,7 @@ export const day26 = [
     ['Mô hình sinh (2023–26)', 'Nhãn trở thành điều kiện'],
   ], 'Giai đoạn 2018–20 thu hẹp khoảng cách bằng thích nghi ảnh, bố cục, cảm biến.'),
 
-  q.multi('06', 1, 'Những nhãn nào người gán nhãn gần như không gán nổi, nhưng bộ dựng tổng hợp cho miễn phí? (chọn nhiều)',
+  q.multi('06', 2, 'Những nhãn nào người gán nhãn gần như không gán nổi, nhưng bộ dựng tổng hợp cho miễn phí? (chọn nhiều)',
     ['Độ sâu từng pixel', 'Optical flow', 'Vận tốc chính xác'],
     ['Tên class của ô tô', 'Box 2D quanh người đi bộ'],
     'Người gán được box (chậm) và mask (rất chậm). Bộ dựng cho box chính xác cả vật bị che, mask, độ sâu, flow, vận tốc từ chính mô phỏng.'),
@@ -53,7 +53,7 @@ export const day26 = [
     ['Mô hình cảm biến (nhiễu, raydrop, blooming, rolling shutter)', 'LiDARsim, NeuRAD, đo cảm biến thật'],
   ], '"Ảnh giả trông không thật" chỉ là một phần. Chẩn đoán trước: lỗi rơi vào ngoại hình, nội dung hay cảm biến?'),
 
-  q.single('10', 1, 'LiDAR mô phỏng hoàn hảo, không mất tia nào. Vì sao đó lại là lỗi?',
+  q.single('10', 2, 'LiDAR mô phỏng hoàn hảo, không mất tia nào. Vì sao đó lại là lỗi?',
     'LiDAR thật mất tia trên kính, sơn đen, ở xa; model học từ dữ liệu "hoàn hảo" sẽ lệch khi gặp dữ liệu thật',
     ['Vì LiDAR mô phỏng chạy quá chậm', 'Vì không có tia nào thì không có nhãn', 'Vì LiDAR thật có nhiều tia hơn mô phỏng'],
     'Đây là khoảng cách cảm biến. Sửa bằng mô hình cảm biến học từ dữ liệu thật.'),
@@ -123,7 +123,7 @@ export const day26 = [
     ['Báo cáo FID thay cho mAP', 'Test trên hỗn hợp thật + sinh cho đủ lớn'],
     'Năm luật; luật cuối là ghi lineage: phiên bản bộ sinh, điều kiện, bộ lọc.'),
 
-  q.single('24', 1, 'Bằng chứng nào thuyết phục nhất rằng dữ liệu sinh có ích?',
+  q.single('24', 2, 'Bằng chứng nào thuyết phục nhất rằng dữ liệu sinh có ích?',
     '+1,5 mAP ở slice mưa đêm, test thật, cùng số bước huấn luyện, 3 seed',
     ['FID của bộ sinh giảm từ 25 xuống 16', 'mAP tăng 4 điểm trên test set gồm thật + sinh', 'Ảnh sinh đẹp đến mức người xem không phân biệt được'],
     'Chỉ phương án này đo bằng nhiệm vụ, trên dữ liệu thật, với baseline công bằng và nhiều seed.'),
@@ -141,7 +141,7 @@ export const day26 = [
     ['Không ảnh hưởng vì quỹ đạo vẫn liên tục', 'Làm quỹ đạo dài gấp đôi', 'Chỉ làm sai nhãn class'],
     'Ví dụ: xe tải che làm ID 7 "biến mất", ID 12 "xuất hiện". Offline có cả tương lai nên nối được qua khoảng trống.'),
 
-  q.fill('27', 1, 'Gia tốc ước lượng bằng sai phân hai lần có std = √6·σ/Δt². Với σ = 0,10 m và Δt = 0,1 s, std bằng bao nhiêu m/s²? (1 chữ số thập phân)', ['24,5', '24.5'],
+  q.fill('27', 2, 'Gia tốc ước lượng bằng sai phân hai lần có std = √6·σ/Δt². Với σ = 0,10 m và Δt = 0,1 s, std bằng bao nhiêu m/s²? (1 chữ số thập phân)', ['24,5', '24.5'],
     '√6 ≈ 2,449; 2,449 × 0,10 / 0,01 = 24,5 m/s² ≈ 2,5 g. Một lần chuyển làn thật chỉ cần khoảng 1 m/s²: nhiễu lớn gấp hơn 20 lần tín hiệu.'),
 
   q.single('28', 1, 'Vì vậy, khi tính gia tốc từ track, nên làm gì?',
@@ -167,7 +167,7 @@ export const day26 = [
     ['Vì độ cong thay đổi theo tốc độ', 'Vì ở 15 m/s xe không thể rẽ', 'Vì gia tốc ngang không phụ thuộc tốc độ'],
     '15² × 0,05 = 11,25 m/s². Cổng phải xét độ cong và tốc độ cùng lúc.'),
 
-  q.single('32', 1, 'Mẫu nào nên gửi đi xem lại thay vì xoá?',
+  q.single('32', 2, 'Mẫu nào nên gửi đi xem lại thay vì xoá?',
     'Xe con giảm tốc −7 m/s² đều trong 1,5 s, quỹ đạo mượt',
     ['Xe con quay 180° trong một khung hình', 'Người đi bộ đi 25 m/s suốt 3 giây', 'Tâm xe tải nằm trên mái một toà nhà'],
     'Phanh gấp −7 m/s² mượt là hiếm nhưng khả thi (dưới μg): dữ liệu quý. Ba mẫu kia vật lý bất khả thi: lỗi tracker hoặc calib. Cổng khả thi tách "không thể" khỏi "hiếm".'),

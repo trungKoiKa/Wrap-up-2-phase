@@ -138,7 +138,7 @@ export const day19 = [
     ['Số gói LiDAR mỗi khung', 'Tỷ lệ bóng ma radar', 'Số nhãn mỗi lớp'],
     'Rolling shutter làm vật/làn nghiêng theo hàng quét và làm VIO trôi; đo bằng IMU-camera residual và line delay.'),
 
-  q.match('26', 1, 'Ghép kiểu suy giảm LiDAR với metric đo nó.', [
+  q.match('26', 2, 'Ghép kiểu suy giảm LiDAR với metric đo nó.', [
     ['Sương / mưa / bụi nước', 'Mật độ điểm theo khoảng cách, tỷ lệ điểm ngoại lai'],
     ['Mất gói / băng thông', 'Số gói mỗi khung, độ phủ góc phương vị'],
     ['Méo do chuyển động', 'Phần dư sau bù ego-motion'],
@@ -162,7 +162,7 @@ export const day19 = [
     ['Chéo cảm biến', 'Sai số chiếu camera–LiDAR, ghép radar–LiDAR'],
   ], 'Sensor health monitoring biến chất lượng cảm biến thành tín hiệu đo được, có ngưỡng cảnh báo nhẹ và nặng.'),
 
-  q.order('30', 1, 'Sắp xếp bốn mức suy giảm từ nhẹ tới nặng.', [
+  q.order('30', 2, 'Sắp xếp bốn mức suy giảm từ nhẹ tới nặng.', [
     'S0 Normal',
     'S1 Mild',
     'S2 Degraded',

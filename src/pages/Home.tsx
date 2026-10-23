@@ -25,7 +25,8 @@ export default function Home() {
     return BANKS.includes(b) ? b : 'midterm'
   })
   const [parts, setParts] = useState<Part[]>(BANK_PARTS[bank])
-  const [prios, setPrios] = useState<Prio[]>(PRIOS)
+  // Phase 2 mặc định chỉ lấy câu cốt lõi (~22 câu mỗi day); bật thêm mức khác khi đã nắm chắc
+  const [prios, setPrios] = useState<Prio[]>([1])
 
   const bankScope: Scope = { parts: BANK_PARTS[bank] }
   const scope: Scope = { parts, prios: bank === 'cv' ? prios : undefined }
@@ -47,7 +48,7 @@ export default function Home() {
   function setBank(b: Bank) {
     setBankState(b)
     setParts(BANK_PARTS[b])
-    setPrios(PRIOS)
+    setPrios([1])
     save('bank', b)
   }
 
