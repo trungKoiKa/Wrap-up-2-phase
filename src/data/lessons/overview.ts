@@ -1,4 +1,4 @@
-// Trang Tổng quan: mạch nối 10 buổi và thuật ngữ chung.
+// Trang Tổng quan: mạch nối 12 buổi và thuật ngữ chung.
 import type { Overview } from './types'
 
 export const OVERVIEW: Overview = {
@@ -20,9 +20,19 @@ export const OVERVIEW: Overview = {
       "text": "Phát hiện, phân đoạn, keypoint trên từng ảnh."
     },
     {
+      "day": "day19",
+      "label": "Cảm biến",
+      "text": "Mỗi cảm biến đo gì, hỏng ra sao; hiệu chuẩn và đồng bộ thời gian."
+    },
+    {
       "day": "day20",
       "label": "Ước lượng",
       "text": "Kalman: trộn dự đoán với cảm biến nhiễu."
+    },
+    {
+      "day": "day21",
+      "label": "Điểm 3D",
+      "text": "Point cloud, voxel và pillar, hộp 3D, chiếu LiDAR lên ảnh."
     },
     {
       "day": "day22",

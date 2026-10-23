@@ -133,6 +133,43 @@ SIMS.day18 = {
   },
 };
 
+// Day 19 · Lệch do thời gian và lệch do góc lắp
+SIMS.day19 = {
+  title: 'Vật lệch chỗ: do đồng hồ hay do góc lắp?',
+  intro: 'Nhìn từ trên xuống. Một xe máy chạy ngang qua trước xe ở khoảng cách d. Camera thấy vị trí thật (hộp xanh); LiDAR báo vị trí lệch (hộp cam) vì hai lỗi: timestamp lệch Δt (vật đã đi thêm v·Δt) và LiDAR lắp lệch góc Δθ (lệch d·tan Δθ). Trục ngang được phóng to để thấy rõ độ lệch.',
+  tries: ['Giữ mặc định 50 km/h, 50 ms: lệch khoảng 0,7 m như slide.', 'Kéo tốc độ về 0: phần lệch do thời gian biến mất. Lệch đổi theo tốc độ là dấu hiệu của đồng bộ thời gian.', 'Đặt góc lệch 1° rồi kéo d từ 30 lên 60 m: lệch do góc tăng gấp đôi theo khoảng cách, không đổi theo tốc độ: dấu hiệu của extrinsic.', 'Đặt góc 1°, d = 30 m, tốc độ 35 km/h: hai lỗi gần như triệt tiêu nhau. Một bài test ở đúng một tốc độ có thể "đẹp" mà hệ vẫn sai.', 'Bật "Bù thời gian": nội suy về thời điểm chung, phần lệch do Δt về 0.'],
+  build: function (ui) {
+    var kmh = 50, dt = 50, th = 0, d = 30, comp = 'Tắt';
+    ui.slider({ label: 'Tốc độ xe máy (km/h)', min: 0, max: 80, step: 5, value: kmh, fmt: function (v) { return v + ' km/h'; } }, function (v) { kmh = v; draw(); });
+    ui.slider({ label: 'Timestamp lệch Δt (ms)', min: 0, max: 150, step: 5, value: dt, fmt: function (v) { return v + ' ms'; } }, function (v) { dt = v; draw(); });
+    ui.slider({ label: 'LiDAR lắp lệch góc Δθ', min: -3, max: 3, step: 0.25, value: th, fmt: function (v) { return vn(v) + '°'; } }, function (v) { th = v; draw(); });
+    ui.slider({ label: 'Khoảng cách d (m)', min: 5, max: 80, step: 5, value: d, fmt: function (v) { return v + ' m'; } }, function (v) { d = v; draw(); });
+    ui.select('Bù thời gian (nội suy)', ['Tắt', 'Bật'], comp, function (v) { comp = v; draw(); });
+    var W = 560, H = 250, box = { l: 50, r: 540, t: 24, b: 214 }, maxX = 85, kx = (box.r - box.l) / maxX, ky = 16, y0 = (box.t + box.b) / 2;
+    var P = function (x, y) { return [box.l + x * kx, y0 - y * ky]; };
+    function draw() {
+      var v = kmh / 3.6, eT = comp === 'Bật' ? 0 : -v * dt / 1000, eA = d * Math.tan(th * Math.PI / 180), e = eT + eA;
+      var svg = ui.svg(W, H);
+      [0, 20, 40, 60, 80].forEach(function (x) { var p = P(x, 0); S('line', { x1: p[0], y1: box.t, x2: p[0], y2: box.b, class: 'sv-grid' }, svg); T(svg, p[0], box.b + 16, x + ' m', { 'text-anchor': 'middle' }); });
+      [-5, 0, 5].forEach(function (y) { var p = P(0, y); T(svg, box.l - 8, p[1] + 4, (y > 0 ? '+' : '') + y + ' m', { 'text-anchor': 'end' }); });
+      S('line', { x1: box.l, y1: y0, x2: box.r, y2: y0, class: 'sv-dash' }, svg);
+      var c = P(0, 0);
+      S('rect', { x: c[0] - 22, y: c[1] - 8, width: 22, height: 16, rx: 3, class: 'sv-cam' }, svg);
+      T(svg, c[0] - 11, c[1] - 14, 'xe', { 'text-anchor': 'middle' });
+      var tp = P(d, 0), mp = P(d, e), w = Math.max(10, 2 * kx), h = 0.8 * ky;
+      S('line', { x1: tp[0] + w / 2 + 8, y1: tp[1] + 30, x2: tp[0] + w / 2 + 8, y2: tp[1] - 30, class: 'sv-ray' }, svg);
+      T(svg, tp[0] + w / 2 + 12, tp[1] - 22, 'hướng chạy');
+      S('rect', { x: mp[0] - w / 2, y: mp[1] - h / 2, width: w, height: h, rx: 2, class: 'sv-boxB' }, svg);
+      S('rect', { x: tp[0] - w / 2, y: tp[1] - h / 2, width: w, height: h, rx: 2, class: 'sv-boxA' }, svg);
+      if (Math.abs(e) > 0.02) S('line', { x1: tp[0] - w / 2 - 6, y1: tp[1], x2: tp[0] - w / 2 - 6, y2: mp[1], class: 'sv-step' }, svg);
+      T(svg, box.r, box.t - 8, 'xanh: vị trí thật · cam: LiDAR báo', { 'text-anchor': 'end' });
+      var ae = Math.abs(e), dom = Math.abs(eT) < 0.02 && Math.abs(eA) < 0.02 ? 'Khớp: không có lệch đáng kể' : ae < 0.2 && Math.abs(eT) > 0.2 ? 'Hai lỗi đang triệt tiêu nhau: đổi tốc độ là lộ ra' : Math.abs(eT) >= Math.abs(eA) ? 'Lệch chủ yếu do thời gian → sửa đồng bộ' : 'Lệch chủ yếu do góc lắp → sửa extrinsic';
+      out(ui, [['Lệch do thời gian v·Δt', vn(Math.abs(eT)) + ' m'], ['Lệch do góc d·tan Δθ', vn(Math.abs(eA)) + ' m'], ['Tổng độ lệch', vn(ae) + ' m', ae < 0.2 ? 'ok' : ae < 0.4 ? 'warn' : 'bad'], ['So với nửa bề ngang xe máy (~0,4 m)', ae < 0.4 ? 'còn trong thân xe' : 'đã ra ngoài thân xe', ae < 0.4 ? 'ok' : 'bad'], ['Đọc là', dom]]);
+    }
+    draw();
+  },
+};
+
 // Day 20 · Kalman 1 chiều
 SIMS.day20 = {
   title: 'Trộn hai niềm tin',
@@ -161,6 +198,60 @@ SIMS.day20 = {
       var lg = [['dự đoán', 'sv-pred'], ['cảm biến', 'sv-meas'], ['kết quả Kalman', 'sv-fuse']];
       lg.forEach(function (l, i) { S('line', { x1: box.r - 150, y1: box.t + 8 + i * 16, x2: box.r - 128, y2: box.t + 8 + i * 16, class: l[1] }, svg); T(svg, box.r - 122, box.t + 12 + i * 16, l[0]); });
       out(ui, [['K = P/(P + R)', vn(K, 3), 'ok'], ['Ước lượng mới', vn(mf, 2) + ' m'], ['Phương sai: dự đoán → kết quả', vn(P, 2) + ' → ' + vn(Pf, 2)], ['Tin cảm biến', Math.round(K * 100) + '%'], ['Tin dự đoán', Math.round((1 - K) * 100) + '%']]);
+    }
+    draw();
+  },
+};
+
+// Day 21 · Chiếu LiDAR lên ảnh
+SIMS.day21 = {
+  title: 'Chiếu điểm LiDAR lên ảnh và làm lệch hiệu chuẩn',
+  intro: 'Một xe đỗ phía trước, cách camera 15 m. Hộp xanh là xe trong ảnh; chấm cam là điểm LiDAR chiếu lên ảnh bằng s·[u, v, 1]ᵀ = K·[R | t]·[x, y, z, 1]ᵀ, với fx = fy = 500 px trên ảnh 640 × 360. Hiệu chuẩn đúng thì chấm nằm gọn trên xe.',
+  tries: ['Đặt lệch yaw 1°: cả đám điểm trượt ngang khoảng 500 × tan 1° ≈ 9 px.', 'Đặt lệch tịnh tiến 20 cm: ở 15 m chỉ lệch khoảng 6–7 px; vật càng gần thì lệch tịnh tiến càng lớn.', 'Chọn "Ảnh thu nhỏ 0,5×, quên scale K": điểm bay khỏi xe dù hiệu chuẩn không đổi.', 'Chọn "Quên lọc z ≤ 0": điểm của chiếc xe phía sau camera bị lật ra trước, thành vật ma trên ảnh.'],
+  build: function (ui) {
+    var yaw = 0, tx = 0, mode = 'Ảnh gốc 640 × 360', filt = 'Lọc điểm sau camera (z > 0)';
+    ui.slider({ label: 'Lệch yaw extrinsic', min: -3, max: 3, step: 0.25, value: yaw, fmt: function (v) { return vn(v) + '°'; } }, function (v) { yaw = v; draw(); });
+    ui.slider({ label: 'Lệch tịnh tiến ngang', min: -40, max: 40, step: 5, value: tx, fmt: function (v) { return v + ' cm'; } }, function (v) { tx = v; draw(); });
+    ui.select('Kích thước ảnh', ['Ảnh gốc 640 × 360', 'Ảnh thu nhỏ 0,5×, có scale K', 'Ảnh thu nhỏ 0,5×, quên scale K'], mode, function (v) { mode = v; draw(); });
+    ui.select('Lọc độ sâu', ['Lọc điểm sau camera (z > 0)', 'Quên lọc z ≤ 0'], filt, function (v) { filt = v; draw(); });
+    // điểm trong hệ camera (x phải, y xuống, z tới trước), camera cao 1,6 m
+    var car = [], ground = [], back = [], i, j;
+    for (i = 0; i <= 8; i++) for (j = 0; j <= 6; j++) car.push([0.6 + i * 0.225, 0.1 + j * 0.25, 15]);
+    for (i = 1; i <= 6; i++) for (j = 0; j <= 4; j++) car.push([0.6, 0.35 + j * 0.25, 15 + i * 0.7]);
+    for (i = 0; i <= 10; i++) for (j = 0; j <= 4; j++) ground.push([-5 + i, 1.6, 6 + j * 7]);
+    for (i = 0; i <= 6; i++) for (j = 0; j <= 4; j++) back.push([-1.5 + i * 0.3, 0.2 + j * 0.3, -6]);
+    var W = 560, H = 315, f0 = 500, cx0 = 320, cy0 = 180;
+    function proj(p, sK, perturb) {
+      var x = p[0], y = p[1], z = p[2];
+      if (perturb) {
+        var a = yaw * Math.PI / 180, x2 = x * Math.cos(a) + z * Math.sin(a), z2 = -x * Math.sin(a) + z * Math.cos(a);
+        x = x2 + tx / 100; z = z2;
+      }
+      return [sK * (f0 * x / z + cx0), sK * (f0 * y / z + cy0), z];
+    }
+    function draw() {
+      var s = mode === 'Ảnh gốc 640 × 360' ? 1 : 0.5, sK = mode.indexOf('quên') >= 0 ? 1 : s, iw = 640 * s, ih = 360 * s, D = W / iw;
+      var svg = ui.svg(W, H), inImg = function (q) { return q[0] >= 0 && q[0] <= iw && q[1] >= 0 && q[1] <= ih; };
+      S('rect', { x: 0, y: 0, width: W, height: H, class: 'sv-img' }, svg);
+      S('line', { x1: 0, y1: cy0 * s * D, x2: W, y2: cy0 * s * D, class: 'sv-dash' }, svg);
+      var truth = car.map(function (p) { return proj(p, s, false); });
+      var bx = { l: Math.min.apply(null, truth.map(function (q) { return q[0]; })), r: Math.max.apply(null, truth.map(function (q) { return q[0]; })), t: Math.min.apply(null, truth.map(function (q) { return q[1]; })), b: Math.max.apply(null, truth.map(function (q) { return q[1]; })) };
+      S('rect', { x: bx.l * D, y: bx.t * D, width: (bx.r - bx.l) * D, height: (bx.b - bx.t) * D, rx: 3, class: 'sv-boxA' }, svg);
+      T(svg, bx.l * D, bx.t * D - 6, 'xe trong ảnh');
+      var shown = 0;
+      ground.forEach(function (p) { var q = proj(p, sK, true); if (q[2] > 0 && inImg(q)) { shown++; S('circle', { cx: q[0] * D, cy: q[1] * D, r: 1.8, class: 'sv-dot' }, svg); } });
+      var inside = 0, err = 0, carShown = 0;
+      car.forEach(function (p, k) {
+        var q = proj(p, sK, true);
+        err += Math.hypot(q[0] - truth[k][0], q[1] - truth[k][1]);
+        if (q[0] >= bx.l - 0.5 && q[0] <= bx.r + 0.5 && q[1] >= bx.t - 0.5 && q[1] <= bx.b + 0.5) inside++;
+        if (inImg(q)) { carShown++; shown++; S('circle', { cx: q[0] * D, cy: q[1] * D, r: 2.4, class: 'sv-ball' }, svg); }
+      });
+      var ghosts = 0;
+      if (filt !== 'Lọc điểm sau camera (z > 0)') back.forEach(function (p) { var q = proj(p, sK, true); if (inImg(q)) { ghosts++; shown++; S('circle', { cx: q[0] * D, cy: q[1] * D, r: 3, class: 'sv-hull' }, svg); } });
+      if (ghosts) T(svg, 8, H - 10, 'vòng đứt nét: điểm sau camera bị lật ra trước (vật ma)');
+      var pctIn = inside / car.length * 100, mErr = err / car.length;
+      out(ui, [['Điểm của xe nằm trong hộp', vn(pctIn, 0) + '%', pctIn > 95 ? 'ok' : pctIn > 60 ? 'warn' : 'bad'], ['Lệch trung bình', vn(mErr, 1) + ' px', mErr < 2 ? 'ok' : mErr < 8 ? 'warn' : 'bad'], ['Điểm hiện trên ảnh', String(shown)], ['Vật ma từ sau camera', String(ghosts), ghosts ? 'bad' : 'ok']]);
     }
     draw();
   },

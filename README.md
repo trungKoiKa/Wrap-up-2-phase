@@ -5,9 +5,9 @@
 ## Tính năng
 
 **Làm đề**
-- Hai nhóm đề, tổng **661 câu**:
+- Hai nhóm đề, tổng **761 câu**:
   - **Giữa kỳ · AI In Action**: 82 câu, chia 4 phần (Kiến thức nền tảng, Business & Product, Infra & FinOps, App Build & Agents).
-  - **Phase 2 · CV & Perception**: 579 câu theo 10 buổi (Day 16–27), lọc được theo mức ưu tiên *Cốt lõi / Quan trọng / Chi tiết*.
+  - **Phase 2 · CV & Perception**: 679 câu theo 12 buổi (Day 16–27), lọc được theo mức ưu tiên *Cốt lõi / Quan trọng / Chi tiết*.
 - 7 dạng câu: một đáp án, nhiều đáp án, đúng/sai, điền khuyết, nối cột, sắp xếp (kéo thả) và tự luận (có đáp án mẫu).
 - Hai chế độ:
   - **Thi thử**: đồng hồ đếm ngược theo số giây mỗi câu.
@@ -21,7 +21,7 @@
 
 **Ôn tập** (`#/learn`)
 - **Sổ Phase 1 · Nền tảng AI**: Day 1–15, 14 buổi (không có Day 6).
-- **Sổ Phase 2 · CV & Perception**: Day 16–27, 10 buổi.
+- **Sổ Phase 2 · CV & Perception**: Day 16–27, 12 buổi.
 - Mỗi buổi gồm:
   - câu hỏi của buổi, hình dung, lộ trình;
   - khái niệm kèm ví dụ;
