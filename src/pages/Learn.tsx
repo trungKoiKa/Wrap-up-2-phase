@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import FlashCards from '../components/lesson/FlashCards'
 import '../components/lesson/lesson.css'
-import { annotateLesson, annotateOverview, annotators } from '../components/lesson/annotate'
+import { annotateLesson, annotateOverview, annotators, hasDeep } from '../components/lesson/annotate'
 import Rich from '../components/lesson/Rich'
 import SimHost from '../components/lesson/SimHost'
 import Tex from '../components/lesson/Tex'
@@ -207,6 +207,103 @@ function ConceptTerm({ c, enFirst }: { c: Concept; enFirst: boolean }) {
   )
 }
 
+type Annotated = ReturnType<typeof annotateLesson>
+
+/** Danh sách khái niệm của phần Cốt lõi (deep = false) hoặc Đào sâu; có nhãn khâu khi buổi có bản đồ. */
+function ConceptList({ d, a, enFirst, deep }: { d: Lesson; a: Annotated; enFirst: boolean; deep: boolean }) {
+  const stages = d.map?.stages ?? []
+  return (
+    <div className="concepts">
+      {d.concepts.map((c, i) => {
+        if (!!c.deep !== deep) return null
+        const si = stages.findIndex((s) => s.k === c.stage)
+        return (
+          <div className="concept" key={c.t}>
+            <div>
+              {si >= 0 && (
+                <span className="lstage">
+                  Khâu {si + 1} · {stages[si].en}
+                </span>
+              )}
+              <ConceptTerm c={c} enFirst={enFirst} />
+            </div>
+            <div className="body">
+              <p>
+                <Rich segs={a.concepts[i].d} />
+              </p>
+              <p className="lex">
+                <b>Ví dụ</b>
+                <Rich segs={a.concepts[i].ex} />
+              </p>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function FormulaGrid({ d, a, deep }: { d: Lesson; a: Annotated; deep: boolean }) {
+  return (
+    <div className="formulas">
+      {d.formulas.map((f, i) =>
+        !!f.deep !== deep ? null : (
+          <div className="formula" key={i}>
+            <Tex tex={f.tex} display />
+            <p className="read">
+              <b>Đọc là</b>
+              <Rich segs={a.formulas[i].read} />
+            </p>
+            <p className="lex">
+              <b>Ví dụ</b>
+              <Rich segs={a.formulas[i].ex} />
+            </p>
+          </div>
+        ),
+      )}
+    </div>
+  )
+}
+
+function LessonTable({ d, a }: { d: Lesson; a: Annotated }) {
+  return (
+    <div className="ltable">
+      <table>
+        <thead>
+          <tr>
+            {d.table.cols.map((c, i) => (
+              <th key={i}>{c}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {a.rows.map((r, i) => (
+            <tr key={i}>
+              {r.map((c, j) => (
+                <td key={j}>
+                  <Rich segs={c} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function TrapList({ items }: { items: Annotated['traps'] }) {
+  return (
+    <ul className="ltraps">
+      {items.map((t, i) => (
+        <li key={i}>
+          <Rich segs={t} />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 /** Cuối buổi: mở ngay một lượt luyện tập chỉ gồm câu hỏi của buổi này (chỉ sổ có đề theo buổi). */
 function PracticeDay({ d }: { d: Lesson }) {
   const nav = useNavigate()
@@ -241,6 +338,7 @@ function Day({ d, book, known, onToggleKnown }: { d: Lesson; book: Book; known: 
   const idx = book.lessons.indexOf(d)
   const prev = book.lessons[idx - 1]
   const next = book.lessons[idx + 1]
+  const deep = hasDeep(d)
 
   return (
     <>
@@ -254,6 +352,25 @@ function Day({ d, book, known, onToggleKnown }: { d: Lesson; book: Book; known: 
           <Rich segs={a.question} />
         </p>
       </div>
+
+      {d.prereq && (
+        <section className="lsec">
+          <h3>
+            Cần biết trước <small>ôn nhanh từ các buổi trước, bấm để mở lại</small>
+          </h3>
+          <div className="lprereq">
+            {d.prereq.map((p, i) => (
+              <Link key={p.t} to={`/learn/${p.day}`}>
+                <span className="pd">Day {LESSON_BY_ID[p.day]?.n}</span>
+                <span className="pt">{p.t}</span>
+                <span className="px">
+                  <Rich segs={a.prereq[i]} />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="lintro">
         <div className="see">
@@ -270,39 +387,75 @@ function Day({ d, book, known, onToggleKnown }: { d: Lesson; book: Book; known: 
         </div>
       </div>
 
-      <section className="lsec">
-        <h3>
-          Lộ trình hiểu <small>đi lần lượt từng bước</small>
-        </h3>
-        <ol className="lsteps">
-          {a.steps.map((s, i) => (
-            <li key={i}>
-              <span>
-                <Rich segs={s} />
-              </span>
-            </li>
-          ))}
-        </ol>
-      </section>
+      {d.thread && (
+        <div className="lthread">
+          <span className="lbl">Ví dụ xuyên suốt · {d.thread.name}</span>
+          <p>
+            <Rich segs={a.thread} />
+          </p>
+        </div>
+      )}
+
+      {d.map ? (
+        <section className="lsec">
+          <h3>
+            Bản đồ của buổi <small>{d.map.note}</small>
+          </h3>
+          <p className="lmap-title">{d.map.title}</p>
+          <ol className="lmap">
+            {d.map.stages.map((s, i) => {
+              const nd = s.next ? LESSON_BY_ID[s.next] : undefined
+              return (
+                <li key={s.k}>
+                  <div className="mh">
+                    <span className="me">{s.en}</span>
+                    <span className="mv">{s.vi}</span>
+                  </div>
+                  <p className="md">
+                    <Rich segs={a.map[i].does} />
+                  </p>
+                  <p className="mx">
+                    <b>{d.thread?.name ?? 'Ví dụ'}</b>
+                    <Rich segs={a.map[i].eg} />
+                  </p>
+                  {nd && (
+                    <Link className="btn" to={`/learn/${nd.id}`}>
+                      Day {nd.n} <ArrowRight size={14} aria-hidden="true" />
+                    </Link>
+                  )}
+                </li>
+              )
+            })}
+          </ol>
+        </section>
+      ) : (
+        <section className="lsec">
+          <h3>
+            Lộ trình hiểu <small>đi lần lượt từng bước</small>
+          </h3>
+          <ol className="lsteps">
+            {a.steps.map((s, i) => (
+              <li key={i}>
+                <span>
+                  <Rich segs={s} />
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       <section className="lsec">
-        <h3>Các khái niệm, giải thích bằng lời thường</h3>
-        <div className="concepts">
-          {d.concepts.map((c, i) => (
-            <div className="concept" key={c.t}>
-              <ConceptTerm c={c} enFirst={book.enFirst} />
-              <div className="body">
-                <p>
-                  <Rich segs={a.concepts[i].d} />
-                </p>
-                <p className="lex">
-                  <b>Ví dụ</b>
-                  <Rich segs={a.concepts[i].ex} />
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <h3>
+          {deep ? (
+            <>
+              <span className="ltier">Cốt lõi</span> Các khái niệm phải nắm
+            </>
+          ) : (
+            'Các khái niệm, giải thích bằng lời thường'
+          )}
+        </h3>
+        <ConceptList d={d} a={a} enFirst={book.enFirst} deep={false} />
       </section>
 
       {sim && a.sim && (
@@ -314,65 +467,26 @@ function Day({ d, book, known, onToggleKnown }: { d: Lesson; book: Book; known: 
         </section>
       )}
 
-      {d.formulas.length > 0 && (
+      {d.formulas.some((f) => !f.deep) && (
         <section className="lsec">
           <h3>
             Công thức & con số <small>đọc dòng "Đọc là" trước, rồi mới nhìn ký hiệu</small>
           </h3>
-          <div className="formulas">
-            {d.formulas.map((f, i) => (
-              <div className="formula" key={i}>
-                <Tex tex={f.tex} display />
-                <p className="read">
-                  <b>Đọc là</b>
-                  <Rich segs={a.formulas[i].read} />
-                </p>
-                <p className="lex">
-                  <b>Ví dụ</b>
-                  <Rich segs={a.formulas[i].ex} />
-                </p>
-              </div>
-            ))}
-          </div>
+          <FormulaGrid d={d} a={a} deep={false} />
         </section>
       )}
 
-      <section className="lsec">
-        <h3>{d.table.title}</h3>
-        <div className="ltable">
-          <table>
-            <thead>
-              <tr>
-                {d.table.cols.map((c, i) => (
-                  <th key={i}>{c}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {a.rows.map((r, i) => (
-                <tr key={i}>
-                  {r.map((c, j) => (
-                    <td key={j}>
-                      <Rich segs={c} />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {!d.table.deep && (
+        <section className="lsec">
+          <h3>{d.table.title}</h3>
+          <LessonTable d={d} a={a} />
+        </section>
+      )}
 
       <div className="ltwo">
         <section className="lsec">
           <h3>Bẫy hay gặp</h3>
-          <ul className="ltraps">
-            {a.traps.map((t, i) => (
-              <li key={i}>
-                <Rich segs={t} />
-              </li>
-            ))}
-          </ul>
+          <TrapList items={a.traps} />
         </section>
         <section className="lsec">
           <h3>3 điều phải nhớ</h3>
@@ -385,6 +499,41 @@ function Day({ d, book, known, onToggleKnown }: { d: Lesson; book: Book; known: 
           </ul>
         </section>
       </div>
+
+      {deep && (
+        <details className="ldeep">
+          <summary>
+            <b>Đào sâu</b>
+            <small>chi tiết công cụ, tham số và con số. Đọc sau khi đã nắm phần Cốt lõi.</small>
+          </summary>
+          <div className="ldeep-body">
+            {d.concepts.some((c) => c.deep) && (
+              <div>
+                <h4>Khái niệm mở rộng</h4>
+                <ConceptList d={d} a={a} enFirst={book.enFirst} deep />
+              </div>
+            )}
+            {d.formulas.some((f) => f.deep) && (
+              <div>
+                <h4>Công thức & con số</h4>
+                <FormulaGrid d={d} a={a} deep />
+              </div>
+            )}
+            {d.table.deep && (
+              <div>
+                <h4>{d.table.title}</h4>
+                <LessonTable d={d} a={a} />
+              </div>
+            )}
+            {a.deepTraps.length > 0 && (
+              <div>
+                <h4>Bẫy khi dùng công cụ</h4>
+                <TrapList items={a.deepTraps} />
+              </div>
+            )}
+          </div>
+        </details>
+      )}
 
       <FlashCards id={d.id} cards={a.cards} known={known} onToggleKnown={onToggleKnown} />
 
