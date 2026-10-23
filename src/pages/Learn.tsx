@@ -315,12 +315,15 @@ function TrapList({ items }: { items: Annotated['traps'] }) {
 function PracticeDay({ d }: { d: Lesson }) {
   const nav = useNavigate()
   const { session, startSession } = useApp()
-  const ids = d.part ? QUESTIONS.filter((q) => q.part === d.part).map((q) => q.id) : []
-  if (!ids.length) return null
+  const all = d.part ? QUESTIONS.filter((q) => q.part === d.part) : []
+  if (!all.length) return null
+  // Bộ cốt lõi (prio 1) phủ các ý chính của buổi; cả bộ thêm câu quan trọng và chi tiết
+  const core = all.filter((q) => q.prio === 1).map((q) => q.id)
+  const ids = all.map((q) => q.id)
 
-  function start() {
+  function start(pick: string[], label: string) {
     if (session && !confirm(`Bạn đang làm dở "${session.title}". Bỏ lượt đó để làm đề Day ${d.n}?`)) return
-    startSession(`Ôn Day ${d.n} · ${d.title}`, ids, 'practice')
+    startSession(`Ôn Day ${d.n} · ${label}`, pick, 'practice')
     nav('/quiz')
   }
 
@@ -329,12 +332,19 @@ function PracticeDay({ d }: { d: Lesson }) {
       <div>
         <h3>Luyện đề buổi này</h3>
         <p>
-          {ids.length} câu trắc nghiệm, đúng/sai, điền khuyết, nối cột, sắp xếp về Day {d.n}. Chế độ luyện tập: chọn đáp án là biết đúng sai kèm giải thích.
+          Bắt đầu với {core.length} câu cốt lõi phủ các ý chính của Day {d.n}. Nắm chắc rồi mới làm cả bộ {ids.length} câu (thêm câu quan trọng và chi tiết, số liệu). Chế độ luyện tập: chọn đáp án là biết đúng sai kèm giải thích.
         </p>
       </div>
-      <button className="btn btn-primary" onClick={start}>
-        <PenLine size={16} aria-hidden="true" /> Làm đề Day {d.n} ({ids.length} câu)
-      </button>
+      <div className="lpractice-btns">
+        {core.length > 0 && (
+          <button className="btn btn-primary" onClick={() => start(core, `cốt lõi (${core.length} câu)`)}>
+            <PenLine size={16} aria-hidden="true" /> Làm {core.length} câu cốt lõi
+          </button>
+        )}
+        <button className="btn" onClick={() => start(ids, `cả bộ (${ids.length} câu)`)}>
+          Cả bộ {ids.length} câu
+        </button>
+      </div>
     </section>
   )
 }

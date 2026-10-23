@@ -51,7 +51,7 @@ export const day21 = [
     ['Ảnh RGB nén JPEG', 'Danh sách hộp 3D đã gán nhãn', 'Bản đồ HD của thành phố'],
     'PCD/PLY/NPY dễ xem bằng Open3D/PCL/Rerun nhưng phải giữ metadata: frame, timestamp, calibration, class map.'),
 
-  q.single('09', 1, 'Hệ trục camera pinhole thường dùng có quy ước nào?',
+  q.single('09', 2, 'Hệ trục camera pinhole thường dùng có quy ước nào?',
     'x sang phải, y xuống dưới, z hướng tới trước',
     ['x tới trước, y sang trái, z lên trên', 'x lên trên, y tới trước, z sang phải', 'Tuỳ ý, không cần quy ước'],
     'LiDAR thì "x forward? y left? z up?" tuỳ driver và dataset; vì vậy mọi thứ phải về cùng một hệ trước khi học.'),

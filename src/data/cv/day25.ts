@@ -11,7 +11,7 @@ export const day25 = [
     'LLM nhận token ảnh + token văn bản và sinh câu trả lời',
   ], 'Qwen3-VL, GLM-V, InternVL, Kimi-VL, DeepSeek-VL2 đều theo khuôn này. Một số paper gọi projector là connector.'),
 
-  q.single('02', 2, 'Qwen3-VL dùng patch 16 px và gộp 2 × 2 patch thành 1 token. Mỗi token ứng với vùng ảnh bao nhiêu?',
+  q.single('02', 1, 'Qwen3-VL dùng patch 16 px và gộp 2 × 2 patch thành 1 token. Mỗi token ứng với vùng ảnh bao nhiêu?',
     '32 × 32 px',
     ['16 × 16 px', '64 × 64 px', '8 × 8 px'],
     'Ước tính 1 token cho mỗi 32 × 32 px, cạnh làm tròn về bội 32: ảnh 1280 × 720 ≈ 900 token, 1920 × 1080 ≈ 2 000 token.'),
@@ -73,7 +73,7 @@ export const day25 = [
     ['Khi gặp trường hợp khó cần lập luận', 'Khi cần box chính xác hơn', 'Không bao giờ nên tắt'],
     'Ví dụ trên RTX 3090: Qwen3-VL-30B-Thinking 31,5 s/khung so với CLIP ViT-L/14 0,2 s/khung. Trường hợp khó thì bật.'),
 
-  q.single('14', 2, 'Với mô hình MoE như Qwen3-VL 30B-A3B, bộ nhớ GPU và chi phí tính toán phụ thuộc gì?',
+  q.single('14', 1, 'Với mô hình MoE như Qwen3-VL 30B-A3B, bộ nhớ GPU và chi phí tính toán phụ thuộc gì?',
     'VRAM theo tổng tham số (30B); chi phí tính theo phần hoạt động mỗi token (3B)',
     ['Cả hai theo tham số hoạt động', 'Cả hai theo tổng tham số', 'VRAM theo tham số hoạt động; chi phí theo tổng'],
     'MoE: tổng tham số lớn, tham số hoạt động mỗi token nhỏ. Kimi-VL 16B tổng, 2,8B hoạt động.'),
@@ -96,7 +96,7 @@ export const day25 = [
     ['Tái tạo pixel của ảnh', 'Contrastive giữa ảnh và văn bản', 'Hồi quy box trên ảnh'],
     'Token ảnh là ngữ cảnh đầu vào; mất mát chỉ tính trên phần văn bản mô hình cần sinh.'),
 
-  q.single('18', 2, 'Theo GLM-V, SFT có vai trò gì?',
+  q.single('18', 1, 'Theo GLM-V, SFT có vai trò gì?',
     'Căn chỉnh phong cách trả lời, không thêm tri thức',
     ['Thêm tri thức mới về thế giới', 'Thay thế hoàn toàn tiền huấn luyện', 'Chỉ dạy mô hình đọc chữ (OCR)'],
     'Qwen3-VL SFT 1,2M mẫu (2/3 có ảnh/video), rồi long-CoT cold start (VL : text ≈ 1:1), strong-to-weak distillation chỉ cho LLM.'),
@@ -154,7 +154,7 @@ export const day25 = [
     ['Precision tăng lên 0,99, recall giảm', 'Cả hai cùng tăng lên trên 0,95', 'Không thay đổi gì'],
     'Inventory giúp lọc chi tiết không có thật, nhưng ~29% khung bị gắn cờ vẫn sai. N = 108 khung là mẫu nhỏ.'),
 
-  q.single('29', 2, 'Caption VLM: "Hai xe con dừng trước vạch, một người đi bộ đang qua đường." Inventory detector: car × 2, person × 0. Quyết định hợp lý?',
+  q.single('29', 1, 'Caption VLM: "Hai xe con dừng trước vạch, một người đi bộ đang qua đường." Inventory detector: car × 2, person × 0. Quyết định hợp lý?',
     'Gửi người duyệt, vì caption và inventory lệch nhau ở người đi bộ',
     ['Nhận caption vì VLM thông minh hơn detector', 'Xoá cả khung hình', 'Sửa inventory cho khớp caption'],
     'Khớp thì nhận, lệch thì gửi người. Máy tạo nhãn khởi tạo, máy kiểm tra, người quyết định.'),
@@ -180,7 +180,7 @@ export const day25 = [
     ['VLM chỉ trả lời câu hỏi bằng văn bản', 'Bộ phát hiện vật thể có nhãn văn bản', 'Mô hình chọn một đáp án trong danh sách'],
     'Ví dụ: "nhặt cốc đỏ" → cánh tay robot nhận chuỗi lệnh chuyển động.'),
 
-  q.match('33', 2, 'Ghép cách sinh hành động của VLA với mô tả.', [
+  q.match('33', 1, 'Ghép cách sinh hành động của VLA với mô tả.', [
     ['Token rời rạc', 'Giải mã từng token như sinh văn bản'],
     ['Flow / diffusion head', 'Khử nhiễu thành chuỗi mượt cùng lúc (Qwen-Drive)'],
     ['Hai hệ nhanh–chậm', 'VLM chậm và policy nhanh chạy song song'],

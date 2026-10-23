@@ -88,7 +88,7 @@ export const day27 = [
     ['Vì nuScenes có nhãn sai', 'Vì mô hình giữ vận tốc dùng camera tốt', 'Vì vòng hở chấm trên dữ liệu tổng hợp'],
     'Li và cs. (CVPR 2024): Ego-MLP không dùng camera có L2 0,35 m, còn tốt hơn VAD đủ camera (0,37 m).'),
 
-  q.tf('16', 1, 'Mô hình có sai số L2 vòng hở thấp thì chắc chắn lái an toàn hơn trong vòng kín.', false,
+  q.tf('16', 2, 'Mô hình có sai số L2 vòng hở thấp thì chắc chắn lái an toàn hơn trong vòng kín.', false,
     'Sai. Trong lab Day 12, mô hình L2 thấp vẫn đâm ở ca phanh gấp cả 5/5 lần huấn luyện. Điểm vòng hở tốt chưa có nghĩa hệ thống hành xử tốt.'),
 
   q.single('17', 2, 'mAP nhận thức tăng đều qua các phiên bản v1 → v6. Va chạm vòng kín thì sao?',
@@ -241,7 +241,7 @@ export const day27 = [
     'Huấn luyện lại',
   ], 'DAgger dạy mô hình hồi phục từ chính sai số của nó, vì dữ liệu đến từ trạng thái do mô hình tự gây ra.'),
 
-  q.single('47', 1, 'Sau khi sửa, PercMLP+ an toàn hơn hẳn nhưng L2 vòng hở xấu đi (0,62 → 0,80 m). Điều đó cho thấy gì?',
+  q.single('47', 2, 'Sau khi sửa, PercMLP+ an toàn hơn hẳn nhưng L2 vòng hở xấu đi (0,62 → 0,80 m). Điều đó cho thấy gì?',
     'Điểm vòng hở không đo chất lượng lái',
     ['Bản sửa làm mô hình tệ đi', 'Nên quay về PercMLP', 'L2 và an toàn luôn đi cùng nhau'],
     'Ô lưới tránh được mà vẫn va chạm giảm 19,9% → 0,8%; va chạm trên nhật ký 0,6–0,9% → 0,2–0,3%.'),

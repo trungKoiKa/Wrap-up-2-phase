@@ -14,7 +14,7 @@ export const day22 = [
     ['Radar và LiDAR không phát hiện được vật thể', 'Camera bị mù hoàn toàn vì trời tối', 'Xe đi quá tốc độ giới hạn của đoạn đường'],
     'Vật thể được phát hiện từ ~5,2 s trước va chạm nhưng nhãn đổi liên tục (Other, Vehicle, Bicycle, Unknown…). Giữ một ID liên tục bất kể nhãn dao động là lý do cốt lõi để tracking tồn tại.'),
 
-  q.order('03', 1, 'Sắp xếp pipeline xe tự lái mà tracking là cầu nối.', [
+  q.order('03', 2, 'Sắp xếp pipeline xe tự lái mà tracking là cầu nối.', [
     'Sensors',
     'Detection',
     'Tracking',

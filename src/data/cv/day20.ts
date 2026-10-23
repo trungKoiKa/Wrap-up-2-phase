@@ -21,7 +21,7 @@ export const day20 = [
     'Dự đoán quỹ đạo',
   ], 'Kalman giúp hợp nhất ba cảm biến, giữ ID khi đối tượng bị che vài khung (bước dự đoán vẫn đẩy track đi tiếp), và cho vận tốc để dự đoán quỹ đạo, phanh sớm.'),
 
-  q.match('04', 1, 'Drone dùng hai cảm biến có lỗi trái ngược. Ghép cảm biến với kiểu lỗi.', [
+  q.match('04', 2, 'Drone dùng hai cảm biến có lỗi trái ngược. Ghép cảm biến với kiểu lỗi.', [
     ['Con quay (gyroscope)', 'Mượt nhưng trôi (drift) vì cộng dồn sai số'],
     ['Gia tốc kế (accelerometer)', 'Không trôi nhưng nhiễu khi drone rung'],
   ], 'Con quay tốt ngắn hạn, gia tốc kế tốt dài hạn. Bộ lọc tin con quay cho thay đổi nhanh và dùng gia tốc kế kéo sai số trôi về. PX4 và ArduPilot dùng EKF.'),
@@ -55,7 +55,7 @@ export const day20 = [
     ['Trộn (bộ lọc Kalman)', 'Mượt và chính xác'],
   ], 'Trong một lần chạy minh hoạ sai số trung bình lần lượt khoảng 3,4 m, 2,6 m và 1,0 m (số đổi theo mỗi lần chạy ngẫu nhiên).'),
 
-  q.single('11', 1, 'Phân phối Gauss được mô tả trọn vẹn bởi những gì?',
+  q.single('11', 2, 'Phân phối Gauss được mô tả trọn vẹn bởi những gì?',
     'Hai con số: trung bình μ và độ lệch chuẩn σ',
     ['Ba con số: trung bình, trung vị và yếu vị', 'Toàn bộ histogram của dữ liệu', 'Giá trị lớn nhất và nhỏ nhất'],
     'p(x) = 1/(σ√(2π))·exp(−(x − μ)²/(2σ²)). Vùng ±1σ chứa 68%, ±2σ chứa 95%.'),
@@ -76,7 +76,7 @@ export const day20 = [
   q.fill('15', 1, 'Dự đoán nói 10 m (phương sai 4), cảm biến nói 12 m (phương sai 1). Ước lượng hợp nhất μ bằng bao nhiêu?', ['11,6', '11.6'],
     'Cách A: trọng số 1/4 và 1/1 → (0,25·10 + 1·12)/1,25 = 11,6. Cách B: K = 4/(4 + 1) = 0,8 → 10 + 0,8·(12 − 10) = 11,6. Cách B chính là bước cập nhật Kalman.'),
 
-  q.fill('16', 1, 'Cùng ví dụ (phương sai dự đoán 4, phương sai cảm biến 1). Phương sai sau hợp nhất bằng bao nhiêu?', ['0,8', '0.8'],
+  q.fill('16', 2, 'Cùng ví dụ (phương sai dự đoán 4, phương sai cảm biến 1). Phương sai sau hợp nhất bằng bao nhiêu?', ['0,8', '0.8'],
     'σ² = 1/(1/4 + 1/1) = 0,8, hoặc (1 − K)·P = 0,2·4 = 0,8. Nhỏ hơn cả hai đầu vào.'),
 
   q.single('17', 1, 'Hệ số Kalman K = P/(P + R) gần bằng 1 nghĩa là gì?',
@@ -158,7 +158,7 @@ export const day20 = [
     ['F = [[1, 0], [0, 1]], H = [0, 1]', 'F = [[Δt, 1], [1, 0]], H = [1, 1]', 'F = [[1, Δt], [0, 0]], H = [1, 0]'],
     'Vị trí mới = vị trí + tốc độ × Δt; tốc độ giữ nguyên. H = [1, 0] lấy ra phần vị trí của trạng thái.'),
 
-  q.single('31', 1, 'Trong bộ lọc nhiều chiều, phương trình dự đoán hiệp phương sai là gì?',
+  q.single('31', 2, 'Trong bộ lọc nhiều chiều, phương trình dự đoán hiệp phương sai là gì?',
     'P⁻ = F·P·Fᵀ + Q',
     ['P⁻ = P + F + Q', 'P⁻ = F·P + Q', 'P⁻ = (I − KH)·P'],
     'P = (I − KH)P⁻ là bước cập nhật. Dạng F·P·Fᵀ đưa độ bất định qua phép biến đổi tuyến tính F.'),

@@ -313,7 +313,7 @@ export const day16 = [
   q.tf('65', 2, 'Nhiệm vụ của bộ tối ưu hoá là tìm cực tiểu toàn cục của hàm mất mát huấn luyện.', false,
     'Sai. Nhiều cực tiểu cùng khớp tập huấn luyện nhưng tổng quát hoá khác nhau. Mục tiêu là cực tiểu tổng quát hoá tốt; tốc độ học, kích thước lô và chính quy hoá quan trọng hơn giá trị mất mát huấn luyện cuối cùng.'),
 
-  q.single('66', 2, 'Tăng độ phức tạp mô hình (ví dụ đa thức bậc 1 → bậc 11) ảnh hưởng thế nào đến độ chệch và phương sai?',
+  q.single('66', 1, 'Tăng độ phức tạp mô hình (ví dụ đa thức bậc 1 → bậc 11) ảnh hưởng thế nào đến độ chệch và phương sai?',
     'Độ chệch giảm, phương sai tăng',
     ['Độ chệch tăng, phương sai giảm', 'Cả hai cùng giảm', 'Cả hai cùng tăng'],
     'Bậc 1 chưa khớp (độ chệch cao); bậc 11 đi qua mọi điểm nhiễu (phương sai cao). Thêm dữ liệu, chính quy hoá, dừng sớm giúp giảm phương sai.'),
