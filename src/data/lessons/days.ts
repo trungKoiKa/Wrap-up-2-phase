@@ -702,137 +702,221 @@ export const DAYS: Lesson[] = [
     "n": 20,
     "title": "Kalman & hợp nhất xác suất",
     "question": "Khi cảm biến nhiễu và mô hình chuyển động không hoàn hảo, làm sao ra được ước lượng tốt nhất về vị trí, vận tốc?",
-    "analogy": "Bạn lái xe vào hầm và mất GPS. Bạn có hai manh mối: \"mình chạy 60 km/h trong 10 giây nên đã đi ~170 m\" (phỏng đoán) và \"bộ đếm bánh xe báo 150 m\" (cảm biến). Không nên chọn một bỏ một; hãy trộn cả hai và tin nhiều hơn vào cái chắc chắn hơn. Bộ lọc Kalman làm đúng việc đó, lặp đi lặp lại mỗi khoảnh khắc.",
-    "why": "Kalman là phần \"dự đoán\" trong mọi tracker (Day 22) và là công cụ chính để hợp nhất LiDAR, radar, camera (Day 23). GPS điện thoại, drone, tàu Apollo đều dùng nó.",
+    "analogy": "Bạn lái xe vào hầm và mất GPS. Bạn còn hai manh mối: \"mình chạy 60 km/h trong 10 giây nên đã đi khoảng 170 m\" (phỏng đoán, sai số cứ cộng dồn) và \"bộ đếm vòng bánh xe báo 150 m\" (cảm biến, khá chuẩn nhưng không tuyệt đối). Đừng chọn một bỏ một: trộn cả hai và nghiêng về manh mối chắc chắn hơn, kết quả khoảng 152 m. Bộ lọc Kalman làm đúng việc đó, lặp lại mỗi khoảnh khắc.",
+    "why": "Kalman có mặt ở điện thoại (GPS + cảm biến chuyển động), xe tự lái, drone, tàu Apollo, dự báo thời tiết và cả tài chính. Trong Phase 2, nó là phần \"dự đoán\" của mọi tracker (Day 22) và là công cụ chính để hợp nhất LiDAR, radar, camera (Day 23).",
     "steps": [
-      "Biểu diễn niềm tin bằng một đường cong hình chuông: giá trị đoán + mức không chắc.",
-      "Trộn hai niềm tin theo độ chắc chắn của từng cái.",
-      "Lặp hai bước: dự đoán (bớt chắc) rồi cập nhật bằng phép đo (chắc hơn).",
+      "Biết khi nào cần bộ lọc: có đại lượng ẩn, cảm biến nhiễu/trễ/thiếu, và đại lượng đó thay đổi theo một quy luật.",
+      "Biểu diễn niềm tin bằng hình chuông (giá trị đoán + độ không chắc) và trộn hai niềm tin theo độ chắc chắn.",
+      "Chạy vòng lặp hai bước: dự đoán (nghi ngờ tăng thêm Q) rồi cập nhật bằng phép đo (tin theo K, nghi ngờ giảm).",
+      "Hiểu hai núm vặn: Q (nghi mô hình) và R (nghi cảm biến) quyết định K và hành vi của bộ lọc.",
       "Mở rộng sang nhiều chiều để ước lượng cả vận tốc chưa từng đo.",
-      "Thế giới cong thì dùng EKF, UKF hoặc bộ lọc hạt; nhiều cảm biến thì cập nhật nhiều lần."
+      "Thế giới cong thì dùng EKF, UKF hoặc bộ lọc hạt.",
+      "Nhiều cảm biến thì cập nhật nhiều lần; coi chừng ngoại lai, thời gian, sai số tương quan và R không trung thực."
     ],
     "concepts": [
       {
-        "t": "Niềm tin hình chuông",
-        "en": "Gaussian belief",
-        "d": "Thay vì một con số, ta giữ một giá trị đoán tốt nhất μ và độ không chắc σ. Đường cong càng hẹp càng chắc chắn.",
-        "ex": "μ = 10 m, σ = 1,5 m: 68% khả năng sự thật nằm trong 8,5–11,5 m."
+        "t": "When to use Kalman (khi nào cần bộ lọc)",
+        "en": "ba điều kiện chung",
+        "d": "Bộ lọc Kalman xuất hiện khi có đủ ba thứ: (1) một đại lượng ẩn cần biết, (2) cảm biến nhiễu, trễ hoặc thiếu, (3) đại lượng đó thay đổi theo một quy luật nào đó.",
+        "ex": "Điện thoại trong hầm: vị trí, vận tốc là đại lượng ẩn; GPS mất hoặc nhảy vài chục mét; xe chuyển động theo quy luật vật lý. Mất GPS thì bước dự đoán vẫn chạy (dead reckoning), có GPS lại thì cập nhật kéo về đúng."
       },
       {
-        "t": "Phương sai",
-        "en": "variance σ²",
-        "d": "Bình phương của σ. Bộ lọc theo dõi phương sai vì nó cộng và trộn rất gọn.",
-        "ex": "Ký hiệu P trong bộ lọc chính là phương sai của ước lượng."
+        "t": "Predict only vs sensor only vs fused",
+        "en": "ba cách theo dõi một robot",
+        "d": "Chỉ dự đoán theo lệnh tốc độ thì mượt nhưng trôi dần vì bánh xe trượt. Chỉ tin cảm biến thì đúng trung bình nhưng giật. Trộn cả hai (Kalman) thì vừa mượt vừa chính xác.",
+        "ex": "Trong một lần chạy demo của slide: sai số trung bình chỉ dự đoán 3,4 m, chỉ cảm biến 2,6 m, Kalman 1,0 m."
       },
       {
-        "t": "Hợp nhất hai niềm tin",
-        "en": "fusion",
-        "d": "Trộn hai đường cong: kết quả nằm gần cái chắc hơn và luôn hẹp hơn cả hai đầu vào.",
-        "ex": "Dự đoán 10 (var 4) + cảm biến 12 (var 1) → 11,6 (var 0,8)."
+        "t": "Gaussian belief (niềm tin hình chuông)",
+        "en": "giá trị đoán μ + độ không chắc σ",
+        "d": "Thay vì một con số, ta giữ giá trị đoán tốt nhất μ và độ không chắc σ. Đường cong càng hẹp càng chắc chắn. Phương sai σ² là thứ bộ lọc thực sự theo dõi (ký hiệu P) vì nó cộng và trộn rất gọn.",
+        "ex": "μ = 10 m, σ = 1,5 m: 68% khả năng sự thật nằm trong 8,5–11,5 m. Đo cùng một thứ n lần rồi lấy trung bình thì sai số giảm còn σ/√n."
       },
       {
-        "t": "Hệ số Kalman K",
-        "en": "Kalman gain",
-        "d": "Con số từ 0 đến 1 nói \"tin phép đo bao nhiêu phần\". K gần 1: tin cảm biến; K gần 0: tin dự đoán.",
-        "ex": "Ra khỏi hầm, P rất lớn, GPS chính xác → K ≈ 1, ước lượng nhảy về GPS."
+        "t": "Fusion of two beliefs (trộn hai niềm tin)",
+        "en": "cân theo 1 / phương sai",
+        "d": "Trộn hai hình chuông: kết quả nằm gần cái chắc hơn, và luôn hẹp hơn cả hai đầu vào. Cái nào phương sai nhỏ (chắc hơn) thì được cân nặng hơn.",
+        "ex": "Dự đoán 10 m (phương sai 4) + cảm biến 12 m (phương sai 1) → 11,6 m, phương sai 0,8. Thử ở mô phỏng \"Trộn hai niềm tin\"."
       },
       {
-        "t": "Q và R",
-        "en": "process / measurement noise",
-        "d": "Q: ta nghi ngờ mô hình chuyển động bao nhiêu. R: ta nghi ngờ cảm biến bao nhiêu. Tỉ lệ Q : R quyết định hành vi bộ lọc.",
-        "ex": "R lấy từ thông số cảm biến; Q chỉnh tới khi bám được chuyển động thật mà không đuổi theo nhiễu."
+        "t": "Predict → update loop (vòng lặp dự đoán – cập nhật)",
+        "en": "đoán trước, sửa bằng bằng chứng",
+        "d": "Bước dự đoán: dùng điều đã biết (tốc độ, lệnh điều khiển, vật lý) để đoán bây giờ ta ở đâu; thời gian trôi nên ta kém chắc hơn. Bước cập nhật: có phép đo thì trộn vào; ta chắc hơn. Bộ lọc chỉ cần nhớ hai thứ: giá trị đoán x và độ không chắc P, không cần lưu lịch sử.",
+        "ex": "Máy tính tàu Apollo chỉ có khoảng hai nghìn từ nhớ ghi được; việc chỉ cần nhớ x và P là điều kiện sống còn."
       },
       {
-        "t": "Trạng thái ẩn",
-        "en": "hidden state",
-        "d": "Đại lượng cần biết mà không cảm biến nào đo trực tiếp. Bộ lọc suy ra nó từ quy luật chuyển động.",
-        "ex": "LiDAR chỉ đo vị trí, nhưng bộ lọc vẫn ra vận tốc."
+        "t": "Kalman gain K & innovation (độ bất ngờ)",
+        "en": "tin phép đo bao nhiêu phần",
+        "d": "Độ bất ngờ (innovation) = phép đo − dự đoán: cảm biến nói khác dự đoán bao nhiêu. K là con số từ 0 đến 1 quyết định nhích về phía phép đo bao nhiêu phần của độ bất ngờ đó. K gần 1: gần như theo hẳn cảm biến; K gần 0: gần như giữ dự đoán.",
+        "ex": "Vừa ra khỏi hầm sau một phút: P rất lớn, GPS chính xác (R nhỏ) → K ≈ 1, ước lượng nhảy về GPS."
       },
       {
-        "t": "EKF, UKF, bộ lọc hạt",
-        "en": "nonlinear filters",
-        "d": "Khi phép đo hay chuyển động là đường cong: EKF xấp xỉ bằng tiếp tuyến, UKF đẩy vài điểm đại diện qua hàm thật, bộ lọc hạt dùng hàng trăm phỏng đoán.",
-        "ex": "Robot chưa biết mình ở cửa nào trong 3 cửa giống nhau → bộ lọc hạt."
+        "t": "Process noise Q (nhiễu quá trình)",
+        "en": "mình nghi mô hình chuyển động bao nhiêu",
+        "d": "Mô hình chuyển động không bao giờ đúng hoàn toàn: bánh xe trượt, xe phía trước phanh gấp, gió đẩy drone. Q là lượng nghi ngờ cộng thêm vào P sau mỗi bước dự đoán để bù cho những thứ chưa mô hình hoá. Q lớn → P sau dự đoán lớn → K lớn → bộ lọc tin cảm biến nhiều hơn.",
+        "ex": "Q quá nhỏ: bộ lọc quá tin mô hình, xe dừng đột ngột mà ước lượng vẫn \"chạy tiếp\" một lúc (trễ). Q quá lớn: ước lượng giật theo từng phép đo nhiễu. Thử ở mô phỏng \"Hai núm vặn Q và R\"."
       },
       {
-        "t": "Hợp nhất nhiều cảm biến",
-        "en": "sensor fusion",
-        "d": "Mỗi cảm biến thêm chỉ là một bước cập nhật nữa với độ nhiễu riêng. Thứ tự cập nhật không quan trọng.",
-        "ex": "LiDAR giỏi vị trí, radar giỏi tốc độ, camera giỏi loại vật."
+        "t": "Measurement noise R (nhiễu đo)",
+        "en": "mình nghi cảm biến bao nhiêu",
+        "d": "R là phương sai nhiễu của cảm biến: cùng một vật mà các lần đo tản mác bao nhiêu. R lớn → K nhỏ → bộ lọc ít tin phép đo, ước lượng mượt nhưng chậm theo. R nhỏ → K lớn → bám sát phép đo, kể cả nhiễu của nó.",
+        "ex": "Đặt R từ thông số kỹ thuật, hoặc ghi lại cảm biến khi vật đứng yên rồi đo độ tản mác. Sau đó mới chỉnh Q cho tới khi bám được cú rẽ, cú phanh thật mà không đuổi theo nhiễu."
+      },
+      {
+        "t": "Q : R ratio (tỷ lệ hai núm vặn)",
+        "en": "hành vi do tỷ lệ quyết định",
+        "d": "Hành vi của bộ lọc (bám nhanh hay mượt) phụ thuộc vào tỷ lệ Q : R. Còn độ lớn tuyệt đối của chúng quyết định bộ lọc tự nhận mình chắc đến đâu (P lớn hay nhỏ).",
+        "ex": "Nhân cả Q và R lên 10 lần: đường ước lượng gần như không đổi, nhưng dải bất định ±2σ rộng ra."
+      },
+      {
+        "t": "Hidden state (trạng thái ẩn)",
+        "en": "ước lượng điều chưa từng đo",
+        "d": "Đại lượng cần biết mà không cảm biến nào đo trực tiếp. Trạng thái gồm [vị trí; vận tốc] dù LiDAR chỉ đo vị trí: các vị trí cứ tăng dần cho bộ lọc biết vật đang chuyển động và nhanh cỡ nào.",
+        "ex": "Mô hình vận tốc không đổi: vị trí mới = vị trí + vận tốc × Δt, vận tốc giữ nguyên (hơn kém chút ít)."
+      },
+      {
+        "t": "Covariance matrix P (ma trận hiệp phương sai)",
+        "en": "bất định 2 chiều là một elip",
+        "d": "Khi trạng thái có nhiều phần tử, P thành một bảng: đường chéo là độ nghi ngờ của từng đại lượng, ngoài đường chéo là chúng liên hệ với nhau thế nào. Vẽ ra thì P là một hình elip.",
+        "ex": "Tương quan ρ > 0: nếu đoán vị trí quá cao thì nhiều khả năng cũng đoán vận tốc quá cao. P = [[2,25; 0,9]; [0,9; 1]]."
+      },
+      {
+        "t": "Linear vs nonlinear (tuyến tính và phi tuyến)",
+        "en": "vì sao Kalman thường cần bản mở rộng",
+        "d": "Kalman gốc chỉ đúng khi chuyển động và phép đo là hàm đường thẳng: đưa một hình chuông qua đường thẳng thì ra vẫn là hình chuông. Ngoài đời nhiều quan hệ là đường cong; hình chuông đi qua đường cong bị méo, công thức Kalman không còn đúng.",
+        "ex": "Radar không đo x, y mà đo khoảng cách r = √(x² + y²) và góc atan2(y, x); xe ôm cua thì hướng đi đổi theo sin, cos. Cả hai đều phi tuyến."
+      },
+      {
+        "t": "EKF · Extended Kalman Filter (Kalman mở rộng)",
+        "en": "thay đường cong bằng tiếp tuyến",
+        "d": "Tại giá trị đoán hiện tại, coi đường cong như đoạn thẳng tiếp tuyến (giống phóng to sát một đường cong thì thấy gần như thẳng), rồi chạy Kalman bình thường. Độ dốc tiếp tuyến là đạo hàm; nhiều chiều thì gom thành ma trận Jacobian. Nhanh, dễ hiểu, nhưng phải tự tính đạo hàm và sai nhiều khi đường cong uốn mạnh trong vùng chưa chắc chắn.",
+        "ex": "x có giá trị đoán 1, độ lệch chuẩn 0,5, qua y = x²: EKF ra trung bình 1 và phương sai 1, trong khi đúng là 1,25 và 1,125. PX4 và ArduPilot (phần mềm bay của drone) dùng EKF."
+      },
+      {
+        "t": "UKF · Unscented Kalman Filter (Kalman dùng điểm sigma)",
+        "en": "đẩy vài điểm đại diện qua hàm thật",
+        "d": "Không xấp xỉ hàm mà chọn vài điểm đại diện cho hình chuông (sigma points: một điểm giữa và các điểm hai bên), đưa từng điểm qua đúng hàm cong, rồi tính lại trung bình và phương sai từ kết quả. Không cần đạo hàm, thường chính xác hơn EKF khi hàm cong mạnh, chi phí tương đương.",
+        "ex": "Cùng ví dụ y = x²: ba điểm 0,134; 1; 1,866 với trọng số 1/6, 2/3, 1/6 cho đúng trung bình 1,25 và phương sai 1,125. Thử ở mô phỏng \"Hình chuông đi qua đường cong\"."
+      },
+      {
+        "t": "Particle filter (bộ lọc hạt)",
+        "en": "hàng trăm phỏng đoán",
+        "d": "Giữ niềm tin bằng hàng trăm, hàng nghìn \"hạt\" phỏng đoán thay vì một hình chuông; hạt nào khớp phép đo thì được giữ và nhân lên. Xử lý được niềm tin nhiều đỉnh, đổi lại tốn tính toán. Ensemble Kalman (EnKF) trong dự báo thời tiết dùng ý tưởng gần giống: chạy 20–100 bản mô hình và ước lượng P từ độ phân tán của chúng.",
+        "ex": "Robot chưa biết mình đứng trước cửa nào trong 3 cửa giống nhau: niềm tin có 3 đỉnh, chỉ bộ lọc hạt giữ được cả ba."
+      },
+      {
+        "t": "Sensor fusion (hợp nhất nhiều cảm biến)",
+        "en": "mỗi cảm biến là một lần cập nhật",
+        "d": "Mỗi cảm biến thêm chỉ là một bước cập nhật nữa với H và R riêng; thứ tự cập nhật không quan trọng. Cảm biến đến không cùng lúc thì với mỗi lần đến: dự đoán tới đúng mốc thời gian đó rồi cập nhật. Hợp nhất tập trung (đưa phép đo thô vào một bộ lọc) chính xác nhất; track-to-track (mỗi cảm biến một tracker rồi ghép) gọn hơn nhưng sai số có thể tương quan.",
+        "ex": "LiDAR giỏi vị trí 3D nhưng sợ mưa sương; radar giỏi khoảng cách, tốc độ, mọi thời tiết nhưng góc ngang thô; camera giỏi góc ngang và loại vật nhưng kém độ sâu. Sai số chỉ về các hướng khác nhau nên ghép lại tốt hơn từng cái."
+      },
+      {
+        "t": "Gating & outliers (cổng lọc ngoại lai)",
+        "en": "loại phép đo bất ngờ quá mức",
+        "d": "Một phép đo lệch xa (bóng ma radar, trục trặc) có thể kéo giật ước lượng. Bộ lọc biết độ bất ngờ \"bình thường\" lớn cỡ nào (ký hiệu S), nên loại những phép đo có độ bất ngờ vượt quá khoảng 3 lần mức đó.",
+        "ex": "Độ bất ngờ nên trông như nhiễu ngẫu nhiên với độ tản mác đúng bằng S; nếu không, Q hoặc R đang khai sai."
       }
     ],
     "formulas": [
       {
         "tex": "x^- = x + u, \\qquad P^- = P + Q",
         "read": "Dự đoán: dịch giá trị đoán theo chuyển động đã biết u, và cộng thêm nghi ngờ Q.",
-        "ex": "Thời gian trôi làm ta kém chắc hơn, không bao giờ chắc hơn."
+        "ex": "Thời gian trôi làm ta kém chắc hơn, không bao giờ chắc hơn. Đặt Q = 0 thì đường cong chỉ dịch đi mà không nở ra."
       },
       {
         "tex": "K = \\dfrac{P^-}{P^- + R}",
-        "read": "Mức tin phép đo = nghi ngờ vào dự đoán chia (nghi ngờ dự đoán + nhiễu cảm biến).",
-        "ex": "P = 4, R = 1 → K = 0,8."
+        "read": "Mức tin phép đo = nghi ngờ vào dự đoán chia (nghi ngờ dự đoán + nhiễu cảm biến). Q làm P⁻ lớn lên nên K tăng; R lớn thì K giảm.",
+        "ex": "P⁻ = 4, R = 1 → K = 0,8: tin cảm biến 80%, tin dự đoán 20%."
       },
       {
         "tex": "x = x^- + K\\,(z - x^-), \\qquad P = (1-K)\\,P^-",
-        "read": "Cập nhật: nhích từ dự đoán về phía phép đo z một phần K; nghi ngờ giảm còn (1 − K).",
-        "ex": "10 + 0,8·(12 − 10) = 11,6; P = 0,2·4 = 0,8."
+        "read": "Cập nhật: nhích từ dự đoán về phía phép đo z một phần K của độ bất ngờ (z − x⁻); nghi ngờ giảm còn (1 − K).",
+        "ex": "10 + 0,8 × (12 − 10) = 11,6; P = 0,2 × 4 = 0,8."
       },
       {
         "tex": "P^- = F P F^{\\top} + Q, \\qquad K = P^- H^{\\top}\\!\\left(H P^- H^{\\top} + R\\right)^{-1}",
-        "read": "Bản nhiều chiều của cùng ý tưởng: F mô tả chuyển động, H mô tả cảm biến thấy gì của trạng thái.",
-        "ex": "Vận tốc không đổi: F = [[1, Δt], [0, 1]], H = [1, 0]."
+        "read": "Bản nhiều chiều của cùng năm dòng: F mô tả chuyển động, H mô tả cảm biến thấy gì của trạng thái. Phần trong ngoặc là S, độ lớn kỳ vọng của độ bất ngờ.",
+        "ex": "Vận tốc không đổi: F = [[1, Δt], [0, 1]], H = [1, 0] (cảm biến chỉ thấy vị trí)."
       },
       {
         "tex": "\\dfrac{1}{\\sigma^2_{\\text{fused}}} = \\sum_i \\dfrac{1}{\\sigma_i^2}",
-        "read": "\"Thông tin\" = 1/phương sai. Hợp nhất là cộng thông tin của các cảm biến.",
-        "ex": "Phương sai 4, 1, 2 → 0,25 + 1 + 0,5 = 1,75 → phương sai 0,57."
+        "read": "\"Thông tin\" = 1 / phương sai. Hợp nhất là cộng thông tin của các cảm biến.",
+        "ex": "LiDAR 10,5 (phương sai 4), radar 12 (1), camera 11 (2): thông tin 0,25 + 1 + 0,5 = 1,75 → phương sai 0,57; trung bình 11,5."
       },
       {
         "tex": "\\sigma_{\\bar z} = \\dfrac{\\sigma}{\\sqrt{n}}",
         "read": "Trung bình n phép đo có sai số giảm theo căn n.",
         "ex": "Đo 100 lần thì sai số còn 1/10."
+      },
+      {
+        "tex": "f(x) \\approx f(\\mu) + f'(\\mu)\\,(x - \\mu)",
+        "read": "EKF thay hàm cong bằng tiếp tuyến tại giá trị đoán μ; độ dốc f′(μ) (nhiều chiều là Jacobian) dùng như ma trận F hoặc H.",
+        "ex": "y = x², μ = 1: tiếp tuyến y ≈ 1 + 2(x − 1) → trung bình 1, phương sai 2² × 0,25 = 1."
+      },
+      {
+        "tex": "\\chi \\in \\{\\mu,\\ \\mu \\pm \\sqrt{3}\\,\\sigma\\},\\quad w = \\tfrac{2}{3},\\ \\tfrac{1}{6},\\ \\tfrac{1}{6}",
+        "read": "UKF một chiều: ba điểm sigma và trọng số của chúng; đưa từng điểm qua hàm thật rồi lấy trung bình có trọng số.",
+        "ex": "μ = 1, σ = 0,5: điểm 1; 1,866; 0,134 → bình phương 1; 3,482; 0,018 → trung bình 1,25."
+      },
+      {
+        "tex": "\\mathbb{E}[x^2] = \\mu^2 + \\sigma^2",
+        "read": "Trung bình thật của x² lớn hơn bình phương của trung bình: độ cong cộng thêm σ².",
+        "ex": "μ = 1, σ = 0,5 → 1,25. EKF bỏ mất phần σ² này vì tiếp tuyến không có độ cong."
       }
     ],
     "table": {
       "title": "Hai núm vặn Q và R",
       "cols": [
         "",
-        "Cảm biến tốt (R nhỏ)",
-        "Cảm biến kém (R lớn)"
+        "R nhỏ (tin cảm biến)",
+        "R lớn (nghi cảm biến)"
       ],
       "rows": [
         [
-          "Mô hình tốt (Q nhỏ)",
-          "Mượt và chính xác",
-          "Rất mượt nhưng chậm nhận ra thay đổi"
+          "Q nhỏ (tin mô hình)",
+          "Tin cả hai: mượt và chính xác. Trường hợp lý tưởng khi cả mô hình lẫn cảm biến đều tốt.",
+          "Tin mô hình, gần như bỏ qua cảm biến: rất mượt nhưng chậm nhận ra thay đổi thật (xe phanh mà ước lượng vẫn chạy)."
         ],
         [
-          "Mô hình kém (Q lớn)",
-          "Bám nhanh nhưng chép cả nhiễu",
-          "Không tin ai, độ bất định lớn"
+          "Q lớn (nghi mô hình)",
+          "Tin cảm biến: bám nhanh nhưng gần như chép luôn nhiễu.",
+          "Không tin ai: đầu ra bất định, bộ lọc báo P lớn."
         ]
       ]
     },
     "traps": [
-      "Chỉ EKF cần tính đạo hàm (Jacobian); UKF và bộ lọc hạt thì không.",
-      "Thêm cảm biến nhiễu không bao giờ có hại, miễn R của nó khai đúng.",
-      "Lệch thời gian 50 ms khi vật chạy 20 m/s đã sai 1 m.",
-      "Q, R khai quá nhỏ làm bộ lọc tự tin sai và bỏ qua dữ liệu mới.",
-      "Gỡ lỗi bộ lọc: kiểm tra đơn vị và dấu thời gian trước tiên."
+      "Q hoặc R khai quá nhỏ: bộ lọc tự tin sai, bỏ qua dữ liệu mới và có thể phân kỳ. Quá lớn: chậm chạp hoặc giật.",
+      "Đếm trùng: hai track \"độc lập\" nhưng chung một nguồn sai số làm kết quả hợp nhất quá tự tin. Hợp nhất phép đo thô, hoặc dùng covariance intersection (quy tắc hợp nhất thận trọng).",
+      "Lệch thời gian 50 ms khi vật chạy 20 m/s đã sai 1 m: đồng bộ đồng hồ, gắn dấu thời gian lúc thu, hiệu chuẩn vị trí cảm biến.",
+      "Thêm cảm biến nhiễu không bao giờ có hại, miễn R của nó khai đúng. R rác thì hợp nhất rác.",
+      "Gỡ lỗi bộ lọc: kiểm tra đơn vị và dấu thời gian trước tiên. Chưa chắc trạng thái ban đầu thì đặt P lớn; nó co lại nhanh.",
+      "Chỉ EKF cần tính đạo hàm (Jacobian); UKF và bộ lọc hạt thì không."
     ],
     "remember": [
-      "Niềm tin = giá trị đoán + độ không chắc; trộn theo nghịch đảo phương sai.",
-      "Dự đoán làm bất định tăng, cập nhật làm bất định giảm.",
-      "R rác thì hợp nhất rác: khai đúng độ nhiễu của từng cảm biến."
+      "Niềm tin = giá trị đoán + độ không chắc; trộn theo nghịch đảo phương sai, kết quả luôn chắc hơn cả hai đầu vào.",
+      "Dự đoán làm nghi ngờ tăng thêm Q; cập nhật làm nghi ngờ giảm theo K. Q nghi mô hình, R nghi cảm biến.",
+      "Hợp nhất chỉ là cập nhật thêm; phi tuyến thì EKF (tiếp tuyến), UKF (điểm sigma), bộ lọc hạt (nhiều phỏng đoán)."
     ],
     "cards": [
       [
         "Ước lượng trễ so với thực tế thì chỉnh gì?",
-        "Tăng Q."
+        "Tăng Q (bớt tin mô hình)."
       ],
       [
-        "Ước lượng bị giật thì chỉnh gì?",
+        "Ước lượng bị giật theo nhiễu thì chỉnh gì?",
         "Giảm Q hoặc tăng R."
+      ],
+      [
+        "Bộ lọc bỏ qua dữ liệu mới thì sao?",
+        "P quá nhỏ: tăng Q."
+      ],
+      [
+        "Phản ứng với mọi trục trặc của cảm biến thì làm gì?",
+        "Thêm gating: loại phép đo có độ bất ngờ quá lớn so với S."
+      ],
+      [
+        "R nên lấy từ đâu?",
+        "Thông số kỹ thuật, hoặc đo độ tản mác của cảm biến khi vật đứng yên."
       ],
       [
         "Bộ lọc chỉ cần nhớ những gì?",
@@ -843,12 +927,16 @@ export const DAYS: Lesson[] = [
         "Vị trí tăng dần theo thời gian và mô hình chuyển động liên hệ vị trí với vận tốc."
       ],
       [
+        "EKF và UKF khác nhau ở đâu?",
+        "EKF thay hàm cong bằng tiếp tuyến (cần đạo hàm); UKF đưa vài điểm sigma qua hàm thật (không cần đạo hàm)."
+      ],
+      [
         "Khi nào cần bộ lọc hạt?",
         "Khi niềm tin có nhiều đỉnh, không còn là một hình chuông."
       ],
       [
         "Radar và camera bù nhau thế nào?",
-        "Radar chính xác theo tia nhìn, camera chính xác theo góc ngang."
+        "Radar chính xác dọc theo tia nhìn, camera chính xác theo góc ngang."
       ]
     ]
   },

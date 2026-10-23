@@ -298,7 +298,7 @@ var TIMING_SIM = {
 SIMS.day19 = [SENSOR_SIM, TIMING_SIM];
 
 // Day 20 · Kalman 1 chiều
-SIMS.day20 = {
+var KALMAN_SIM = {
   title: 'Trộn hai niềm tin',
   intro: 'Đường xanh dương là dự đoán, đường cam là phép đo của cảm biến, đường xanh lá là kết quả bộ lọc Kalman. Mặc định đúng ví dụ trong slide: dự đoán 10 m (σ = 2), cảm biến 12 m (σ = 1).',
   tries: ['Nhìn đường xanh lá: nó luôn hẹp hơn cả hai đường kia.', 'Tăng σ cảm biến lên 4: kết quả trượt về phía dự đoán, K nhỏ lại.', 'Tăng σ dự đoán lên 6 (như sau khi đi lâu trong hầm): K tiến gần 1, kết quả gần như bằng phép đo.', 'Đặt hai σ bằng nhau: K = 0,5, kết quả nằm chính giữa.'],
@@ -329,6 +329,139 @@ SIMS.day20 = {
     draw();
   },
 };
+
+// Day 20 · Hai núm vặn Q và R
+var QR_SIM = {
+  title: 'Hai núm vặn Q và R',
+  intro: 'Robot chạy trên đường ray, được ra lệnh đi 1 m mỗi bước nhưng bánh xe trượt nhẹ (thật: lệch ±0,5 m mỗi bước). Từ bước 40 đến 60 robot bị kẹt, đứng yên mà lệnh vẫn là 1 m/bước. Cảm biến đo vị trí với nhiễu ±2 m. Trục dọc là độ lệch so với kế hoạch. Đen: sự thật; chấm cam: cảm biến; xanh dương đứt: chỉ dự đoán theo lệnh; xanh lá: Kalman với Q, R bạn chọn.',
+  tries: ['Bấm "Đúng thực tế" (√Q = 0,5, √R = 2): đường xanh lá bám sát đường đen, sai số nhỏ nhất.', 'Bấm "Quá tin bánh xe" (Q rất nhỏ): đường xanh lá mượt nhưng khi robot kẹt ở bước 40 nó vẫn "chạy tiếp" một lúc lâu mới nhận ra: trễ.', 'Bấm "Quá tin cảm biến" (R rất nhỏ): đường xanh lá nhảy theo từng chấm cam: chép luôn nhiễu.', 'Nhân cả hai lên: đặt √Q = 1,5, √R = 6 (cùng tỷ lệ với "Đúng thực tế"). Đường xanh lá gần như không đổi, chỉ dải bất định ±2σ rộng ra: hành vi do tỷ lệ Q : R quyết định.', 'Nhìn K trung bình: Q tăng hoặc R giảm thì K tăng (tin cảm biến hơn).'],
+  build: function (ui) {
+    var sq = 0.5, sr = 2;
+    var iq = ui.slider({ label: 'Bộ lọc nghĩ √Q (nghi mô hình)', min: 0.02, max: 3, step: 0.02, value: sq, fmt: function (v) { return vn(v); } }, function (v) { sq = v; draw(); });
+    var ir = ui.slider({ label: 'Bộ lọc nghĩ √R (nghi cảm biến)', min: 0.1, max: 8, step: 0.1, value: sr, fmt: function (v) { return vn(v, 1); } }, function (v) { sr = v; draw(); });
+    var setTo = function (q, r) { iq.value = q; iq.dispatchEvent(new Event('input')); ir.value = r; ir.dispatchEvent(new Event('input')); };
+    ui.button('Đúng thực tế', function () { setTo(0.5, 2); });
+    ui.button('Quá tin bánh xe', function () { setTo(0.04, 2); });
+    ui.button('Quá tin cảm biến', function () { setTo(0.5, 0.2); });
+    // dữ liệu cố định để so sánh công bằng giữa các lần chỉnh
+    var Nst = 80, r = rng(5), truth = [0], z = [], cmd = 1;
+    for (var k = 1; k <= Nst; k++) truth.push(truth[k - 1] + (k > 40 && k <= 60 ? 0 : cmd + 0.5 * gauss(r)));
+    for (k = 0; k <= Nst; k++) z.push(truth[k] + 2 * gauss(r));
+    var W = 560, H = 270, box = { l: 44, r: 545, t: 14, b: 232 };
+    function draw() {
+      var Q = sq * sq, Rv = sr * sr, x = 0, P = 1, est = [0], band = [1], Ks = [], pred = [0];
+      for (var k = 1; k <= Nst; k++) {
+        x = x + cmd; P = P + Q;
+        var K = P / (P + Rv); x = x + K * (z[k] - x); P = (1 - K) * P;
+        est.push(x); band.push(Math.sqrt(P)); Ks.push(K); pred.push(k * cmd);
+      }
+      var dev = function (arr) { return arr.map(function (v, k) { return v - k * cmd; }); };
+      var dT = dev(truth), dZ = dev(z), dE = dev(est), dP = dev(pred);
+      var lo = Math.min.apply(null, dT.concat(dZ)) - 2, hi = Math.max.apply(null, dT.concat(dZ)) + 2;
+      var X = function (k) { return box.l + k / Nst * (box.r - box.l); }, Y = function (v) { return box.b - (v - lo) / (hi - lo) * (box.b - box.t); };
+      var svg = ui.svg(W, H), yt = [], step = (hi - lo) > 30 ? 10 : 5;
+      for (var t = Math.ceil(lo / step) * step; t <= hi; t += step) yt.push([Y(t), (t > 0 ? '+' : '') + t + ' m']);
+      axes(svg, box, [0, 20, 40, 60, 80].map(function (k) { return [X(k), 'bước ' + k]; }), yt);
+      S('rect', { x: X(40), y: box.t, width: X(60) - X(40), height: box.b - box.t, class: 'sv-band', style: 'fill-opacity:.12' }, svg);
+      T(svg, (X(40) + X(60)) / 2, box.t + 12, 'robot bị kẹt', { 'text-anchor': 'middle' });
+      var bandUp = dE.map(function (v, k) { return [X(k), Y(v + 2 * band[k])]; }), bandDn = dE.map(function (v, k) { return [X(k), Y(v - 2 * band[k])]; }).reverse();
+      S('polygon', { points: bandUp.concat(bandDn).map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' '), class: 'sv-inter', style: 'fill-opacity:.2' }, svg);
+      var line = function (arr, cls) { S('path', { d: arr.map(function (v, k) { return (k ? 'L' : 'M') + X(k).toFixed(1) + ' ' + Y(v).toFixed(1); }).join(''), class: cls, style: 'fill:none' }, svg); };
+      line(dP, 'sv-pred sv-thin');
+      dZ.forEach(function (v, k) { if (k) S('circle', { cx: X(k), cy: Y(v), r: 2.2, class: 'sv-dot' }, svg); });
+      line(dT, 'sv-ax sv-bold');
+      line(dE, 'sv-fuse');
+      var rms = function (a) { var s = 0; for (var k = 1; k <= Nst; k++) s += Math.pow(a[k] - truth[k], 2); return Math.sqrt(s / Nst); };
+      var eE = rms(est), eZ = rms(z), eP = rms(pred), kAvg = Ks.reduce(function (a, b) { return a + b; }, 0) / Ks.length;
+      // trễ: sai số trung bình trong đoạn kẹt; giật: độ dao động từng bước ngoài đoạn kẹt
+      var lag = 0; for (k = 41; k <= 60; k++) lag += est[k] - truth[k]; lag /= 20;
+      var jit = 0, n = 0; for (k = 2; k <= 40; k++) { jit += Math.abs((est[k] - est[k - 1]) - (truth[k] - truth[k - 1])); n++; } jit /= n;
+      var verdict = lag > 3 ? 'Trễ: quá tin mô hình (Q nhỏ so với R). Robot kẹt mà ước lượng vẫn chạy tiếp.' : jit > 1.3 ? 'Giật: quá tin cảm biến (R nhỏ so với Q). Ước lượng chép luôn nhiễu.' : 'Cân bằng: bám kịp thay đổi thật mà không đuổi theo nhiễu.';
+      out(ui, [['Sai số Kalman (RMS)', vn(eE) + ' m', eE < 1.6 ? 'ok' : eE < 2.5 ? 'warn' : 'bad'], ['Chỉ cảm biến', vn(eZ) + ' m'], ['Chỉ dự đoán theo lệnh', vn(eP) + ' m'], ['K trung bình (tin cảm biến)', Math.round(kAvg * 100) + '%'], ['Tỷ lệ Q : R', vn(Q / Rv, 3)], ['Đọc là', verdict]]);
+    }
+    draw();
+  },
+};
+
+// Day 20 · Đưa hình chuông qua đường cong: EKF và UKF
+var EKF_UKF_SIM = {
+  title: 'Hình chuông đi qua đường cong: EKF hay UKF?',
+  intro: 'Hình chuông dưới trục ngang là niềm tin về x (giá trị đoán μ, độ lệch chuẩn σ). Ta đưa nó qua hàm cong y = f(x). Cột xám bên trái là phân bố thật của y (lấy 4000 mẫu); đường xanh dương là EKF (dùng tiếp tuyến, nét đứt); đường xanh lá là UKF (ba điểm sigma, chấm tròn).',
+  tries: ['Giữ y = x², μ = 1, σ = 0,5: EKF ra trung bình 1, UKF ra 1,25 đúng như đáp án.', 'Kéo σ xuống 0,1: đường cong trong vùng hẹp gần như thẳng, EKF và UKF gần như trùng nhau.', 'Đặt μ = 0 với y = x²: tiếp tuyến nằm ngang nên EKF tin rằng y luôn bằng 0 với phương sai 0, sai hoàn toàn; UKF vẫn ra trung bình σ².', 'Chọn y = sin x, μ = 1,5 (gần đỉnh), σ = 1: EKF lệch rõ, UKF bám sát hơn nhiều.', 'Chọn y = x³ / 3: UKF đúng trung bình nhưng phương sai vẫn lệch một chút. UKF là xấp xỉ tốt hơn, không phải phép tính chính xác.'],
+  build: function (ui) {
+    var FN = {
+      'y = x²': { f: function (x) { return x * x; }, d: function (x) { return 2 * x; } },
+      'y = sin x': { f: function (x) { return Math.sin(x); }, d: function (x) { return Math.cos(x); } },
+      'y = x³ / 3': { f: function (x) { return x * x * x / 3; }, d: function (x) { return x * x; } },
+    };
+    var fname = 'y = x²', mu = 1, sd = 0.5;
+    ui.select('Hàm cong', Object.keys(FN), fname, function (v) { fname = v; draw(); });
+    ui.slider({ label: 'Giá trị đoán μ', min: -2, max: 2.5, step: 0.1, value: mu, fmt: function (v) { return vn(v, 1); } }, function (v) { mu = v; draw(); });
+    ui.slider({ label: 'Độ lệch chuẩn σ', min: 0.05, max: 1.2, step: 0.05, value: sd, fmt: function (v) { return vn(v); } }, function (v) { sd = v; draw(); });
+    var W = 560, H = 360, bx = { l: 150, r: 545, t: 14, b: 262 }, N = 4000;
+    function draw() {
+      var F = FN[fname], r = rng(11), ys = [], i;
+      for (i = 0; i < N; i++) ys.push(F.f(mu + sd * gauss(r)));
+      var tm = ys.reduce(function (a, b) { return a + b; }, 0) / N;
+      var tv = ys.reduce(function (a, b) { return a + (b - tm) * (b - tm); }, 0) / N;
+      var em = F.f(mu), ev = Math.pow(F.d(mu) * sd, 2);
+      var k = Math.sqrt(3) * sd, xs = [mu - k, mu, mu + k], w = [1 / 6, 2 / 3, 1 / 6], fy = xs.map(F.f);
+      var um = fy[0] * w[0] + fy[1] * w[1] + fy[2] * w[2], uv = fy.reduce(function (a, y, j) { return a + w[j] * (y - um) * (y - um); }, 0);
+      // khung toạ độ
+      var x0 = mu - 3.2 * sd - 0.3, x1 = mu + 3.2 * sd + 0.3, curve = [], j;
+      for (j = 0; j <= 80; j++) { var xx = x0 + (x1 - x0) * j / 80; curve.push([xx, F.f(xx)]); }
+      var sorted = ys.slice().sort(function (a, b) { return a - b; });
+      var lo = Math.min(sorted[Math.floor(N * 0.005)], em - 3 * Math.sqrt(ev), um - 3 * Math.sqrt(uv)), hi = Math.max(sorted[Math.floor(N * 0.995)], em + 3 * Math.sqrt(ev), um + 3 * Math.sqrt(uv));
+      if (hi - lo < 0.5) { var c = (hi + lo) / 2; lo = c - 0.25; hi = c + 0.25; }
+      var pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+      var X = function (x) { return bx.l + (x - x0) / (x1 - x0) * (bx.r - bx.l); }, Y = function (y) { return bx.b - (y - lo) / (hi - lo) * (bx.b - bx.t); };
+      var svg = ui.svg(W, H);
+      S('rect', { x: bx.l, y: bx.t, width: bx.r - bx.l, height: bx.b - bx.t, class: 'sv-ghost' }, svg);
+      // đường cong và tiếp tuyến tại μ (EKF)
+      S('path', { d: curve.filter(function (p) { return p[1] >= lo && p[1] <= hi; }).map(function (p, idx) { return (idx ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1); }).join(''), class: 'sv-curve' }, svg);
+      var tx0 = x0, tx1 = x1, slope = F.d(mu);
+      S('line', { x1: X(tx0), y1: Y(em + slope * (tx0 - mu)), x2: X(tx1), y2: Y(em + slope * (tx1 - mu)), class: 'sv-pred sv-thin' }, svg);
+      T(svg, bx.r - 4, bx.t + 14, fname, { 'text-anchor': 'end' });
+      // niềm tin đầu vào: hình chuông dưới trục x
+      var g = function (x, m, s) { return Math.exp(-0.5 * Math.pow((x - m) / s, 2)); }, base = bx.b + 70, inP = [];
+      for (j = 0; j <= 80; j++) { var xi = x0 + (x1 - x0) * j / 80; inP.push((j ? 'L' : 'M') + X(xi).toFixed(1) + ' ' + (base - 56 * g(xi, mu, sd)).toFixed(1)); }
+      S('path', { d: inP.join(''), class: 'sv-curve' }, svg);
+      S('line', { x1: bx.l, y1: base, x2: bx.r, y2: base, class: 'sv-ax' }, svg);
+      T(svg, bx.l, base + 16, 'niềm tin về x: μ = ' + vn(mu, 1) + ', σ = ' + vn(sd));
+      // điểm sigma: chiếu lên đường cong rồi sang trục y
+      xs.forEach(function (x, idx) {
+        S('line', { x1: X(x), y1: base, x2: X(x), y2: Y(fy[idx]), class: 'sv-fuse sv-thin' }, svg);
+        S('line', { x1: X(x), y1: Y(fy[idx]), x2: bx.l, y2: Y(fy[idx]), class: 'sv-fuse sv-thin' }, svg);
+        S('circle', { cx: X(x), cy: base, r: 4, class: 'sv-ball' }, svg);
+        S('circle', { cx: X(x), cy: Y(fy[idx]), r: 4, class: 'sv-ball' }, svg);
+      });
+      // phân bố của y bên trái: histogram thật + hình chuông EKF và UKF
+      var bins = 36, cnt = new Array(bins).fill(0);
+      ys.forEach(function (y) { var b = Math.floor((y - lo) / (hi - lo) * bins); if (b >= 0 && b < bins) cnt[b]++; });
+      var mx = Math.max.apply(null, cnt), bh = (bx.b - bx.t) / bins;
+      cnt.forEach(function (n, b) { if (n) S('rect', { x: bx.l - 8 - 120 * n / mx, y: bx.b - (b + 1) * bh, width: 120 * n / mx, height: bh, class: 'sv-band' }, svg); });
+      function bell(m, v, cls) {
+        var pts = [], sdv = Math.sqrt(Math.max(v, 1e-9)), peak = 0, q, yy;
+        for (q = 0; q <= 120; q++) { yy = lo + (hi - lo) * q / 120; peak = Math.max(peak, g(yy, m, sdv)); }
+        for (q = 0; q <= 120; q++) { yy = lo + (hi - lo) * q / 120; pts.push((q ? 'L' : 'M') + (bx.l - 8 - 120 * g(yy, m, sdv) / peak).toFixed(1) + ' ' + Y(yy).toFixed(1)); }
+        S('path', { d: pts.join(''), class: cls }, svg);
+      }
+      if (ev > 1e-9) bell(em, ev, 'sv-pred'); else S('line', { x1: bx.l - 128, y1: Y(em), x2: bx.l - 8, y2: Y(em), class: 'sv-pred sv-bold' }, svg);
+      bell(um, uv, 'sv-fuse');
+      T(svg, 8, bx.t + 10, 'phân bố của y');
+      var err = function (a, b) { return Math.abs(a - b); }, eE = err(em, tm) + err(Math.sqrt(ev), Math.sqrt(tv)), eU = err(um, tm) + err(Math.sqrt(uv), Math.sqrt(tv));
+      out(ui, [
+        ['Đúng (4000 mẫu): trung bình · độ lệch chuẩn', vn(tm) + ' · ' + vn(Math.sqrt(tv))],
+        ['EKF (tiếp tuyến)', vn(em) + ' · ' + vn(Math.sqrt(ev)), eE < 0.05 * (1 + Math.abs(tm)) ? 'ok' : 'warn'],
+        ['UKF (3 điểm sigma)', vn(um) + ' · ' + vn(Math.sqrt(uv)), eU < 0.05 * (1 + Math.abs(tm)) ? 'ok' : 'warn'],
+        ['Đọc là', eE < 0.05 * (1 + Math.abs(tm)) && eU < 0.05 * (1 + Math.abs(tm)) ? 'Vùng chưa chắc chắn hẹp, đường cong gần như thẳng: hai cách gần như bằng nhau.' : eU < eE ? 'Đường cong uốn mạnh trong vùng chưa chắc chắn: UKF bám sát hơn EKF.' : 'Trường hợp này EKF không thua UKF.'],
+      ]);
+    }
+    draw();
+  },
+};
+
+SIMS.day20 = [KALMAN_SIM, QR_SIM, EKF_UKF_SIM];
 
 // Day 21 · Chiếu LiDAR lên ảnh
 SIMS.day21 = {
