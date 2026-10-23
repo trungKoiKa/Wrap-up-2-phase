@@ -1425,69 +1425,156 @@ export const DAYS: Lesson[] = [
     "n": 23,
     "title": "3D, BEV & Sensor fusion",
     "question": "Chỉ có ảnh phẳng, làm sao biết vật cách bao nhiêu mét? Và khi nào phải nhờ LiDAR, radar, gộp chúng thế nào cho đúng?",
-    "analogy": "Nhìn một chiếc xe trong ảnh, bạn đoán nó xa vì nó nhỏ và gần đường chân trời. Máy tính cũng phải đoán như vậy, vì camera làm mất độ sâu. LiDAR là thước đo khoảng cách bằng laser, radar là \"súng bắn tốc độ\". Mỗi giác quan có điểm mù riêng, gộp lại thì bù cho nhau.",
-    "why": "Xe tự lái lập kế hoạch trên mặt đường theo mét, không theo pixel. BEV (nhìn từ trên xuống) là không gian chung cho mọi camera và cảm biến, và fusion quyết định xe có thấy người đi bộ trong đêm mưa hay không.",
+    "analogy": "Nhìn một chiếc xe trong ảnh, bạn đoán nó xa vì nó nhỏ và gần đường chân trời. Máy tính cũng phải đoán như vậy, vì camera làm mất độ sâu. LiDAR là thước đo khoảng cách bằng laser, radar là \"súng bắn tốc độ\". Mỗi giác quan có điểm mù riêng; ba manh mối yếu hợp lại thành một kết luận chắc chắn.",
+    "why": "Xe tự lái lập kế hoạch trên mặt đường theo mét, không theo pixel. BEV (nhìn từ trên xuống) là không gian chung cho mọi camera và cảm biến, còn fusion quyết định xe có thấy người đi bộ khuất sau xe tải trong đêm mưa hay không. Nó dùng lại Kalman/EKF (Day 20) và ghép dữ liệu (Day 22).",
     "steps": [
       "Hiểu vì sao một pixel là cả một tia: camera mất độ sâu.",
-      "Detector 3D đơn ảnh đoán lại độ sâu rồi đổi ngược về toạ độ 3D.",
-      "Đưa nhiều camera lên một bản đồ nhìn từ trên xuống (BEV).",
+      "Detector 3D đơn ảnh đoán lại độ sâu rồi giải mã ngược về toạ độ 3D bằng K⁻¹.",
+      "Đưa nhiều camera lên một bản đồ nhìn từ trên xuống (BEV): bottom-up hoặc top-down.",
       "Hiệu chuẩn và đồng bộ thời gian giữa các cảm biến.",
-      "Chọn cách hợp nhất, ghép phép đo với track rồi cập nhật bằng EKF."
+      "Chọn tầng hợp nhất (early/mid/late) và thứ tự với tracking (track-then-fuse hay fuse-then-track).",
+      "Ghép phép đo với track (gating, Hungarian) rồi cập nhật bằng EKF, mỗi cảm biến một cặp (h, R)."
     ],
     "concepts": [
       {
-        "t": "Phép chiếu pinhole",
-        "en": "pinhole projection",
-        "d": "Camera biến điểm 3D (X, Y, Z) thành pixel (u, v) bằng cách chia cho độ sâu Z. Phép chia đó làm mất hẳn một chiều.",
-        "ex": "Một chiếc hộp ở 10 m hay 45 m đều có thể rơi vào cùng một pixel."
+        "t": "Depth ambiguity (một pixel là cả một tia)",
+        "en": "camera mất độ sâu khi chiếu",
+        "d": "Mọi điểm nằm trên cùng một tia nhìn đều rơi vào cùng một pixel, nên chỉ từ một ảnh không biết vật nằm đâu trên tia đó. Muốn biết phải thêm thông tin: kích thước đã biết của vật, chỗ vật chạm đất, hai góc nhìn (stereo, chuyển động) hoặc một cảm biến đo trực tiếp (LiDAR, radar).",
+        "ex": "Một hộp chiếm đúng một chỗ trong ảnh: nếu nó ở 45 m thì rộng 1,8 m, nhiều khả năng là một xe hơi; ở 10 m thì chỉ là một vật nhỏ.",
+        "fig": "pixel-ray",
+        "figCap": "Ba vật khác kích thước, khác độ sâu nhưng cùng nằm trên một tia nên cho cùng một pixel."
       },
       {
-        "t": "Intrinsic và extrinsic",
-        "en": "calibration",
-        "d": "Intrinsic (K): đặc tính riêng của cảm biến như tiêu cự, tâm ảnh. Extrinsic ([R | t]): cảm biến được lắp ở đâu, xoay hướng nào trên xe.",
-        "ex": "Lệch 4° extrinsic đã làm mọi điểm LiDAR trượt khỏi vật trong ảnh."
+        "t": "Pinhole projection & K⁻¹ (chiếu và giải mã ngược)",
+        "en": "pixel = K · điểm 3D trong hệ camera",
+        "d": "Camera chiếu điểm 3D (X, Y, Z) thành pixel bằng cách chia cho độ sâu Z rồi nhân tiêu cự, cộng tâm ảnh (ma trận K). Đi ngược: biết pixel (u, v) và đoán được z thì tính lại điểm 3D bằng z · K⁻¹ · [u, v, 1]. Đây là bước cuối của mọi detector 3D từ camera.",
+        "ex": "K, R, t do bộ dữ liệu (KITTI, nuScenes, Waymo) cung cấp sẵn; người dùng dataset không cần tự hiệu chuẩn."
       },
       {
-        "t": "Hộp 3D bảy tham số",
-        "en": "3D box",
-        "d": "Tâm (x, y, z), kích thước (rộng, dài, cao) và góc hướng. Khó nhất là độ sâu z và góc hướng.",
-        "ex": "Sai số mono 3D chủ yếu nằm ở độ sâu, không phải nhận nhầm loại."
+        "t": "3D box from an image (hộp 3D từ ảnh)",
+        "en": "x, y, z · w, l, h · yaw θ",
+        "d": "Hộp 3D có bảy tham số: tâm, ba kích thước (gần như cố định theo loại xe) và góc hướng. Khó nhất là độ sâu z và góc θ. Hình dạng xe trong ảnh phụ thuộc góc nhìn tới xe α chứ không phụ thuộc θ, nên mạng dự đoán α rồi đổi θ = α + arctan(x/z).",
+        "ex": "Xe ở X = −3 m, Z = 18 m, θ = 35° → α = θ − arctan(X/Z) ≈ 44°."
       },
       {
-        "t": "BEV",
-        "en": "bird's-eye view",
-        "d": "Bản đồ nhìn từ trên xuống quanh xe. Vật không bị méo phối cảnh, mọi cảm biến và tác vụ dùng chung một không gian.",
-        "ex": "BEVFormer dùng lưới ~200 × 200 ô, mỗi ô ~0,5 m, phủ ±51 m."
+        "t": "Ground contact (đặt chân xuống mặt đường)",
+        "en": "Z = f · h / (v − c_y)",
+        "d": "Nếu xe đứng trên mặt đường phẳng, hàng pixel của chân xe cho ra khoảng cách. Gần đường chân trời, lệch 1 pixel đổi hàng chục mét; đường dốc hay xe nhún làm công thức sai.",
+        "ex": "h = 1,65 m, f = 720, chân xe 40 px dưới chân trời → 29,7 m; lệch 1 px → 29,0 … 30,5 m. Thử ở mô phỏng."
       },
       {
-        "t": "Bottom-up và top-down",
-        "en": "image → BEV",
-        "d": "Bottom-up: đoán độ sâu từng pixel rồi rải lên BEV (LSS, BEVDepth). Top-down: mỗi ô BEV hay truy vấn hỏi ngược vào ảnh (DETR3D, BEVFormer, PETR).",
-        "ex": "Thêm khung trước đó (temporal) giúp ước lượng vận tốc và nhớ vật bị che."
+        "t": "Monocular 3D detector (detector 3D đơn ảnh)",
+        "en": "SMOKE · FCOS3D · MonoFlex · CaDDN",
+        "d": "Khung chung: ảnh → backbone + FPN → các \"đầu\" dự đoán heatmap tâm 3D, độ lệch tâm, độ sâu z, kích thước, hướng (sin α, cos α) → giải mã bằng K⁻¹. SMOKE bỏ hộp 2D; FCOS3D cho mỗi pixel dự đoán tất cả; MonoFlex xử lý riêng vật bị cắt biên và trộn nhiều ước lượng độ sâu; CaDDN dự đoán phân phối độ sâu rồi dựng BEV.",
+        "ex": "Phần lớn sai số của mono 3D đến từ định vị (chủ yếu độ sâu), không phải phân loại: động lực để chuyển sang nhiều camera và BEV."
       },
       {
-        "t": "Ba loại cảm biến",
-        "en": "camera, LiDAR, radar",
-        "d": "Camera giỏi loại vật và góc ngang, kém độ sâu. LiDAR đo khoảng cách chính xác, kém trong sương mưa. Radar đo tốc độ và chạy mọi thời tiết, nhưng góc ngang thô.",
-        "ex": "Radar chỉ đo được phần vận tốc dọc tia nhìn: xe chạy ngang gần như đo ra 0."
+        "t": "Uncertainty-weighted depth loss (loss độ sâu có độ bất định)",
+        "en": "L = |z − ẑ| / σ + log σ",
+        "d": "Mỗi đầu ra có loss riêng: heatmap dùng focal loss (đa số pixel là nền), kích thước dùng L1, hướng dùng sin/cos hoặc chia cung để tránh nhảy ở 0°/360°. Riêng độ sâu, mạng đoán thêm độ bất định σ: vật khó (xa, bị che) tự được giảm phạt, còn log σ ngăn mạng đặt σ vô hạn.",
+        "ex": "Lý do FCOS3D, MonoFlex, PGD chính xác hơn hẳn các bản đầu: mạng học được lúc nào nên tự tin."
       },
       {
-        "t": "Đồng bộ thời gian",
-        "en": "synchronization",
-        "d": "Hai cảm biến hiếm khi chụp cùng lúc. Lệch thời gian làm vật đang chạy bị lệch vị trí, vật đứng yên thì không.",
-        "ex": "LiDAR quay một vòng mất ~100 ms nên cần bù chuyển động (de-skew)."
+        "t": "3D detection metrics (đo detector 3D)",
+        "en": "KITTI AP₃D · nuScenes NDS · Waymo LET-3D-AP",
+        "d": "KITTI ghép theo IoU 3D (xe: ngưỡng 0,7) nên rất khắt khe: lệch vài chục cm là mất điểm. nuScenes ghép theo khoảng cách tâm (0,5 / 1 / 2 / 4 m) và cộng năm sai số ATE, ASE, AOE, AVE, AAE thành NDS. Waymo có LET-3D-AP khoan dung sai số theo phương dọc vì đó là lỗi vốn có của camera.",
+        "ex": "NDS nuScenes theo công bố gốc: FCOS3D 42,8 → BEVFormer 56,9 → CenterPoint (LiDAR) 65,5 → BEVFusion (camera + LiDAR) 72,9."
       },
       {
-        "t": "Hai trục thiết kế fusion",
-        "en": "fusion design",
-        "d": "Trục 1: gộp ở tầng nào (dữ liệu thô / đặc trưng / hộp). Trục 2: gộp phép đo trước rồi mới theo dõi, hay giữ một track rồi cập nhật lần lượt từng cảm biến. Hai trục độc lập với nhau.",
-        "ex": "Bài lab dùng một track, cập nhật lần lượt LiDAR rồi camera."
+        "t": "BEV (bird's-eye view, nhìn từ trên xuống)",
+        "en": "không gian chung cho mọi camera, cảm biến",
+        "d": "Bản đồ nhìn từ trên xuống quanh xe. Trên ảnh, xe xa nhỏ và méo; trên BEV, xe có đúng kích thước và vị trí trên mặt đường. Mọi camera, cảm biến và nhiều tác vụ (hộp, làn, bản đồ) dùng chung một bản đồ đặc trưng; lập kế hoạch cũng làm việc trên mặt đất.",
+        "ex": "Sáu camera kiểu nuScenes phủ kín 360°; BEVFormer dùng lưới khoảng 200 × 200 ô, mỗi ô 0,5 m, phủ ±51 m quanh xe.",
+        "fig": "persp-vs-bev",
+        "figCap": "Cùng hai chiếc xe: trong ảnh phối cảnh xe xa nhỏ và làn đường hội tụ; trên BEV hai xe cùng kích thước, làn song song."
       },
       {
-        "t": "Gating và ghép dữ liệu",
-        "en": "data association",
-        "d": "Trước khi cập nhật, phải biết phép đo thuộc track nào: loại phép đo quá xa (gating), ghép 1–1 (Hungarian), quản lý vòng đời track.",
-        "ex": "Hai xe sát nhau: JPDA trộn theo xác suất, MHT giữ nhiều kịch bản rồi chốt sau."
+        "t": "Bottom-up: lift-splat (LSS, BEVDepth)",
+        "en": "đoán độ sâu từng pixel rồi rải lên BEV",
+        "d": "Mỗi pixel được \"nâng\" thành một phân phối trên nhiều mức độ sâu dọc tia của nó, đặc trưng được rải (splat) vào các ô BEV theo trọng số đó. Hình học rõ ràng, dễ debug theo độ sâu, nhưng phụ thuộc chất lượng độ sâu: đoán không chắc thì đặc trưng bị nhoè dọc tia.",
+        "ex": "BEVDepth giám sát độ sâu bằng LiDAR lúc huấn luyện để phân phối độ sâu sắc nét hơn. Thử ở mô phỏng \"Lift-splat\"."
+      },
+      {
+        "t": "Top-down: queries (DETR3D, BEVFormer, PETR)",
+        "en": "từ BEV / query hỏi ngược vào ảnh",
+        "d": "DETR3D: mỗi object query đoán một điểm 3D, chiếu điểm đó vào camera nào nhìn thấy nó, lấy đặc trưng tại pixel đó, cập nhật query, lặp 6 lớp; huấn luyện bằng ghép Hungarian nên không cần NMS. BEVFormer: mỗi ô BEV chiếu điểm 3D của nó vào ảnh và attend vào đó, thêm attention với BEV khung trước. PETR: cộng mã vị trí 3D vào đặc trưng ảnh, không cần chiếu.",
+        "ex": "Hướng gần đây: sparse query + nhiều khung (StreamPETR, Sparse4D) để nhẹ hơn BEV dày mà vẫn mạnh."
+      },
+      {
+        "t": "Temporal BEV & occupancy (BEV theo thời gian và lưới chiếm chỗ)",
+        "en": "nhớ qua khung · ô 3D trống hay đặc",
+        "d": "Temporal: dịch BEV khung trước theo chuyển động của xe rồi gộp với BEV hiện tại để ước lượng vận tốc, nhớ vật bị che tạm thời, giảm nhiễu độ sâu. Occupancy: thay vì hộp, dự đoán mỗi voxel trống hay đặc kèm lớp, xử lý được vật hình dạng bất kỳ và không cần biết trước loại vật để \"không đâm\".",
+        "ex": "Xe đổ, cần cẩu, đống rác không có hộp chuẩn nhưng vẫn chiếm chỗ. Tesla giới thiệu Occupancy Network năm 2022; học thuật có Occ3D, SurroundOcc."
+      },
+      {
+        "t": "Camera vs LiDAR vs radar (mỗi loại giỏi một thứ)",
+        "en": "ngữ nghĩa · hình học · vận tốc",
+        "d": "Camera giỏi loại vật, biển báo, góc ngang, rẻ; kém độ sâu, tối, chói. LiDAR đo khoảng cách trực tiếp bằng thời gian bay laser, hình dạng chi tiết; thưa dần theo khoảng cách, kém trong sương mưa. Radar đo khoảng cách và vận tốc, tầm xa trên 200 m, xuyên mưa sương, rẻ; phân giải góc thấp, nhiễu do lan can và đa đường.",
+        "ex": "Đêm mưa, người đi bộ khuất sau xe tải: camera gần như không thấy người, LiDAR chỉ còn vài điểm thưa, radar thấy tín hiệu yếu; ghép lại thì kết luận chắc chắn có người."
+      },
+      {
+        "t": "Radar Doppler (radar chỉ thấy một nửa vận tốc)",
+        "en": "chỉ thành phần dọc tia nhìn",
+        "d": "Hiệu ứng Doppler chỉ đo thành phần vận tốc dọc theo tia nhìn từ radar tới vật (vận tốc hướng tâm). Thành phần vuông góc với tia nhìn thì radar không thấy. Xe chạy ngang qua trục nhìn cho Doppler gần 0.",
+        "ex": "Xe ở góc 25°, chạy hướng 100°, 15 m/s: radar đo +3,9 m/s (đang ra xa) và không thấy 14,5 m/s còn lại. Thử ở mô phỏng."
+      },
+      {
+        "t": "Calibration for each sensor (hiệu chuẩn từng cảm biến)",
+        "en": "intrinsic · extrinsic · hand-eye AX = XB",
+        "d": "Mọi cảm biến đều có intrinsic (tự nó đo lệch bao nhiêu, không đổi khi tháo lắp) và extrinsic (đặt ở đâu, hướng nào so với xe). Camera: K và méo ống kính, đo bằng bàn cờ (phương pháp Zhang); LiDAR: bảng hiệu chỉnh từng tia; radar: mảng ăng-ten; IMU: bias và hệ số tỷ lệ; IMU, GNSS: lever arm tới tâm xe. Hai cảm biến gắn cứng thì giải AX = XB từ nhiều chuyển động.",
+        "ex": "Chỉ lệch 4° extrinsic là mọi điểm LiDAR trượt khỏi vật trên ảnh. Trên xe thật hiệu chuẩn trôi theo thời gian nên cần hiệu chuẩn lại trực tuyến."
+      },
+      {
+        "t": "Time synchronization (đồng bộ thời gian)",
+        "en": "PTP trigger · timestamp + cửa sổ · bù chuyển động",
+        "d": "Hiệu chuẩn trả lời \"ở đâu\", đồng bộ trả lời \"lúc nào\". LiDAR quét một vòng mất khoảng 100 ms nên điểm phía trước và phía sau không cùng thời điểm. Ba cách: kích chụp phần cứng theo đồng hồ chung (PTP, GPS PPS); gắn timestamp mềm rồi ghép cặp gần nhất trong cửa sổ dung sai (ví dụ ±50 ms); dùng IMU/odometry nội suy về một mốc chung (deskew).",
+        "ex": "Trong EKF, bước predict chính là công cụ ngoại suy trạng thái tới đúng timestamp của phép đo mới; dt không cần đều giữa các cảm biến."
+      },
+      {
+        "t": "Early / mid / late fusion (hợp nhất ở tầng nào)",
+        "en": "dữ liệu thô · đặc trưng · hộp / track",
+        "d": "Early: gộp dữ liệu thô trước mọi mạng, giữ nhiều thông tin nhất nhưng cần hiệu chuẩn, đồng bộ cực chuẩn và một cảm biến hỏng làm hỏng cả đầu vào. Mid: mỗi cảm biến tự rút đặc trưng (thường trên BEV) rồi gộp, cân bằng nhất, là xu hướng chính (BEVFusion). Late: mỗi cảm biến tự ra hộp rồi hợp nhất, độc lập, dễ debug, nhưng nếu cả hai chỉ \"hơi thấy\" một vật thì khó cứu.",
+        "ex": "Early: \"sơn\" mỗi điểm LiDAR bằng màu pixel nó chiếu tới. Late: detector camera và detector LiDAR chạy riêng, rồi Kalman/EKF hợp nhất các hộp.",
+        "fig": "fusion-levels",
+        "figCap": "Cùng hai cảm biến, ba chỗ cắt khác nhau trong pipeline."
+      },
+      {
+        "t": "Track-then-fuse vs fuse-then-track (hợp nhất trước hay theo dõi trước)",
+        "en": "trục thiết kế thứ hai, độc lập với early/mid/late",
+        "d": "Track-then-fuse: mỗi vật chỉ có một track (x, P); mỗi phép đo mới, từ cảm biến nào cũng được, lần lượt predict rồi update với (h, R) của cảm biến đó. Fuse-then-track: gộp phép đo các cảm biến thành một z duy nhất trước, tracker chỉ update một lần, cần tự thiết kế \"hàm gộp\" và rất nhạy lệch đồng bộ. Ô tô sản xuất còn có track-to-track: mỗi ECU cảm biến tự theo dõi rồi ECU trung tâm ghép track.",
+        "ex": "Lab Day 23 làm track-then-fuse (LiDAR rồi camera lần lượt update một EKF). PointPainting, BEVFusion là fuse-then-track.",
+        "fig": "track-fuse",
+        "figCap": "Nhìn vào bước update: nhiều update lần lượt là track-then-fuse; gộp thành một z trước khi update là fuse-then-track."
+      },
+      {
+        "t": "Multi-sensor EKF (EKF nhiều cảm biến)",
+        "en": "một trạng thái, mỗi cảm biến một cặp (h, R)",
+        "d": "Track giữ trạng thái chung [vị trí; vận tốc]. Mỗi cảm biến có mô hình đo h(x) riêng: LiDAR đo vị trí (tuyến tính), camera đo pixel (chia cho khoảng cách, phi tuyến), radar đo khoảng cách, góc, tốc độ hướng tâm (phi tuyến). Phi tuyến thì dùng Jacobian, tức độ dốc của h tại điểm dự đoán (EKF, Day 20).",
+        "ex": "Ví dụ trong slide: xe cách 50 m. Update LiDAR (R = 0,25): K vị trí = 0,94, phương sai 4,02 → 0,24. Update camera đo độ rộng pixel ở 49 m: K chỉ −0,04 vì 1 px ở khoảng cách đó là hơn 1 m. LiDAR gánh gần hết việc định vị."
+      },
+      {
+        "t": "Gating & data association (phép đo thuộc track nào)",
+        "en": "gating · Hungarian · JPDA · MHT",
+        "d": "Trước khi update phải biết phép đo thuộc track nào: vẽ vùng elip quanh dự đoán (d² = γᵀS⁻¹γ) và loại phép đo ngoài vùng; ghép 1–1 bằng Hungarian; quản lý vòng đời track. Khi hai vật sát nhau, JPDA trộn có trọng số mọi phép đo trong vùng theo xác suất, MHT giữ nhiều kịch bản ghép song song vài khung rồi mới chốt.",
+        "ex": "Ngưỡng 95% với 2 bậc tự do: d² ≤ 5,99. Phép đo d² = 0,2; 1,0; 4,1 được giữ; 9,8; 14,5; 16,0 bị loại ngay."
+      },
+      {
+        "t": "Ego localization fusion (hợp nhất để biết mình ở đâu)",
+        "en": "GNSS + IMU + odometry",
+        "d": "GNSS cho vị trí tuyệt đối nhưng nhiễu (±1 đến vài m), chậm (1–10 Hz), mất trong hầm. IMU chạy hàng trăm Hz nhưng tích phân làm sai số lớn dần. Kalman lấy điểm mạnh của cả hai: trong hầm chỉ trôi nhẹ, có tín hiệu lại thì kéo về.",
+        "ex": "Robot kho, drone, xe tự lái đều chạy một bộ EKF hoặc SLAM như vậy ở bên dưới."
+      },
+      {
+        "t": "Fusion failure modes (fusion hỏng ở đâu)",
+        "en": "drift · lệch thời gian · phụ thuộc một cảm biến · chiếu nhầm",
+        "d": "Hiệu chuẩn trôi do rung; lệch thời gian làm vật đang chạy lệch chỗ; cảm biến suy giảm (bẩn, sương, bề mặt tối bóng); mô hình quen dựa vào LiDAR, tắt LiDAR là sụp (chữa bằng modality dropout khi huấn luyện); điểm LiDAR phía sau vật che vẫn rơi vào pixel của vật che; cổng ghép quá rộng ghép nhầm, quá hẹp bỏ sót.",
+        "ex": "Ca 2016 (Florida): theo giải thích của hãng xe, camera không phân biệt được mặt hông trắng của xe đầu kéo với nền trời sáng. Một luật lọc nhiễu hợp lý ở tình huống này có thể sai chết người ở tình huống khác, nên cần gating cẩn trọng thay vì luật cứng theo từng cảm biến."
+      },
+      {
+        "t": "Latency budget (ngân sách độ trễ)",
+        "en": "mỗi 100 ms ở 50 km/h là 1,4 m",
+        "d": "Mô hình giỏi mà chậm vẫn có thể khiến xe không kịp phanh. Perception chỉ có ngân sách khoảng 50–100 ms; BEV dày, backbone lớn phải giảm bằng quantization, TensorRT, sparse; đồng bộ nhiều cảm biến cũng tốn thời gian.",
+        "ex": "Ví dụ trong slide: 50 km/h, trễ perception 120 ms + planning và phanh 150 ms → quãng dừng 19,8 m, còn cách người ở 40 m là 20,2 m."
       }
     ],
     "formulas": [
@@ -1522,6 +1609,21 @@ export const DAYS: Lesson[] = [
         "ex": "FCOS3D 42,8 → BEVFusion 72,9."
       },
       {
+        "tex": "v_r = v\\cos(\\psi - \\varphi)",
+        "read": "Radar đo vận tốc hướng tâm = tốc độ × cos(góc giữa hướng chạy ψ và tia nhìn φ).",
+        "ex": "v = 15 m/s, ψ = 100°, φ = 25°: 15 × cos 75° ≈ 3,9 m/s; phần 14,5 m/s vuông góc thì không thấy."
+      },
+      {
+        "tex": "d^2 = \\gamma^{\\top} S^{-1} \\gamma \\le 5{,}99",
+        "read": "Cổng gating: độ bất ngờ γ = z − h(x⁻) chia theo độ lớn kỳ vọng S; vượt ngưỡng chi-square 95% (2 bậc tự do) thì loại.",
+        "ex": "d² = 4,1 giữ lại; d² = 9,8 loại."
+      },
+      {
+        "tex": "\\dfrac{\\partial u}{\\partial p_y} = -\\dfrac{f}{p_x}",
+        "read": "Jacobian của mô hình đo camera (u = c_u − f·p_y/p_x): độ nhạy của pixel theo vị trí ngang giảm khi vật ở xa.",
+        "ex": "Vì vậy ở 49 m camera gần như không giúp định vị theo độ sâu."
+      },
+      {
         "tex": "s = v\\,t \\approx 13{,}9\\ \\tfrac{\\text{m}}{\\text{s}} \\times 0{,}1\\ \\text{s} \\approx 1{,}4\\ \\text{m}",
         "read": "Ở 50 km/h, mỗi 100 ms trễ xe đi thêm 1,4 m trước khi kịp phản ứng.",
         "ex": "Vì vậy perception chỉ có ngân sách ~50–100 ms."
@@ -1538,31 +1640,32 @@ export const DAYS: Lesson[] = [
         [
           "Early: gộp dữ liệu thô",
           "Giữ nhiều thông tin nhất",
-          "Cần hiệu chuẩn, đồng bộ cực chuẩn"
+          "Cần hiệu chuẩn, đồng bộ cực chuẩn; một cảm biến hỏng làm hỏng cả đầu vào"
         ],
         [
           "Mid: gộp đặc trưng (thường trên BEV)",
           "Cân bằng nhất, xu hướng hiện nay",
-          "Phải huấn luyện chung, tốn dữ liệu"
+          "Phải huấn luyện chung, tốn dữ liệu và tính toán"
         ],
         [
           "Late: gộp hộp / track",
           "Mỗi nhánh độc lập, dễ gỡ lỗi",
-          "Mất thông tin thô"
+          "Mất thông tin thô; vật cả hai chỉ \"hơi thấy\" khó cứu"
         ]
       ]
     },
     "traps": [
       "Lỗi góc lắp đặt làm lệch mọi vật (xa càng tệ); lệch thời gian chỉ làm lệch vật đang chạy.",
-      "Trục \"early/mid/late\" và trục \"gộp trước hay theo dõi trước\" là hai chuyện khác nhau.",
+      "Trục \"early/mid/late\" và trục \"track-then-fuse / fuse-then-track\" là hai chuyện độc lập.",
+      "NMS cho hộp 3D phải dùng IoU của hình chữ nhật xoay theo yaw (BEV-IoU), không dùng IoU thẳng trục.",
+      "Lật ảnh khi augmentation phải lật cả dấu của yaw và x; copy-paste vật phải scale đúng theo phối cảnh.",
       "Phụ thuộc một cảm biến: chữa bằng modality dropout khi huấn luyện.",
-      "Ở 49 m, camera gần như không giúp định vị; LiDAR gánh phần lớn.",
       "Báo cáo mô hình mà không nêu độ trễ là chưa đủ."
     ],
     "remember": [
-      "Mọi detector 3D từ camera là một cách đoán lại độ sâu bị mất.",
+      "Mọi detector 3D từ camera là một cách đoán lại độ sâu bị mất; sai số chủ yếu ở z.",
       "BEV là \"ngôn ngữ chung\" để gộp nhiều camera và cảm biến.",
-      "Fusion chỉ đúng khi hiệu chuẩn và đồng bộ đúng."
+      "Fusion chỉ đúng khi hiệu chuẩn và đồng bộ đúng; mỗi cảm biến chỉ cần một cặp (h, R)."
     ],
     "cards": [
       [
@@ -1586,8 +1689,20 @@ export const DAYS: Lesson[] = [
         "Đặc trưng từng cảm biến đã được làm sạch trước khi gộp nên bền với lỗi nhỏ."
       ],
       [
+        "DETR3D lấy đặc trưng ảnh thế nào?",
+        "Mỗi query đoán điểm 3D, chiếu vào camera nhìn thấy nó, lấy đặc trưng tại pixel đó, lặp 6 lớp."
+      ],
+      [
+        "Lift-splat nhoè khi nào?",
+        "Khi phân phối độ sâu dọc tia không chắc: đặc trưng bị rải ra nhiều ô."
+      ],
+      [
+        "Khi hai xe sát nhau, thay Hungarian bằng gì?",
+        "JPDA (trộn có trọng số) hoặc MHT (giữ nhiều kịch bản ghép)."
+      ],
+      [
         "Waymo và Tesla khác triết lý cảm biến thế nào?",
-        "Waymo dùng nhiều camera + LiDAR + radar; Tesla chỉ dùng camera."
+        "Waymo dùng nhiều camera + LiDAR + radar; Tesla dựa chủ yếu vào camera."
       ]
     ]
   },
@@ -1598,62 +1713,149 @@ export const DAYS: Lesson[] = [
     "title": "Data & Annotation",
     "question": "Xe ghi vài terabyte mỗi giờ. Làm sao biến đống đó thành một bộ dữ liệu sạch, có nhãn đúng, đủ tin để huấn luyện?",
     "analogy": "Hình dung một nhà máy lọc nước. Nước sông (dữ liệu thô) chảy qua nhiều bể: bể chứa nguyên bản, bể lọc sạch, bể nước uống được. Mỗi bể có trạm kiểm tra, bể nào bẩn thì dừng. Gán nhãn là bước \"dán tem chất lượng\", và tem chỉ có giá trị khi ai cũng hiểu cùng một quy tắc.",
-    "why": "Mô hình chỉ giỏi bằng dữ liệu nó được xem. Lỗi dữ liệu (định dạng hộp sai, mẫu test lọt vào train, nhãn không nhất quán) làm điểm số đẹp giả mà không báo lỗi.",
+    "why": "Mô hình chỉ giỏi bằng dữ liệu nó được xem, và pipeline quyết định dữ liệu đó là gì. Lỗi dữ liệu (định dạng hộp sai, mẫu test lọt vào train, nhãn không nhất quán) làm điểm số đẹp giả mà không báo lỗi. Hôm nay có dataset; Day 25 dùng VLM để gán nhãn và cần kiểm tra độc lập.",
     "steps": [
-      "Dữ liệu đi qua năm chặng: sinh ra, nạp, lưu, biến đổi, phục vụ.",
-      "Lưu theo ba lớp Bronze → Silver → Gold, có cổng kiểm tra.",
-      "Chọn dữ liệu đáng gán nhãn và chia train/test không rò rỉ.",
-      "Để máy gán nhãn trước, người kiểm theo mức độ tin cậy.",
-      "Kiểm soát chất lượng nhãn và đo xem cách chọn mẫu có thật sự giúp."
+      "Dữ liệu đi qua năm chặng: sinh ra, nạp, lưu, biến đổi, phục vụ; bên dưới là điều phối, chất lượng, bảo mật.",
+      "Lưu theo ba lớp Bronze → Silver → Gold trên lakehouse, ghép luồng theo event time, chạy lại an toàn.",
+      "Kiểm chất lượng tự động ở mỗi lớp, ghi lineage và version cho dataset.",
+      "Chọn dữ liệu đáng gán nhãn (trigger, tìm bằng câu chữ) và chia train/test theo cảnh.",
+      "Viết guideline; để máy gán nhãn trước, định tuyến theo độ tin cậy, người kiểm và audit.",
+      "Tìm nhãn sai, chọn mẫu chủ động, tự huấn luyện thầy–trò; luôn so với baseline ngẫu nhiên."
     ],
     "concepts": [
       {
-        "t": "Data engine",
-        "en": "data flywheel",
-        "d": "Vòng lặp 10 bước: ghi, lọc, nạp, đánh chỉ mục, chọn, gán nhãn, đóng gói, huấn luyện, đánh giá, triển khai. Lỗi phát hiện khi đánh giá trở thành dữ liệu cần thu thêm.",
-        "ex": "Tesla lọc ngay trên xe; Waymo tìm cảnh hiếm trong log."
+        "t": "Data funnel (pipeline là phễu)",
+        "en": "vài TB mỗi giờ vào, vài khung hình ra",
+        "d": "Một xe ghi khoảng 3–6 TB dữ liệu thô mỗi giờ (tuỳ cảm biến). Qua bộ lọc có chủ đích, dataset chỉ còn vài khung hình đáng giá. Hai câu hỏi dẫn dắt: cái gì trong đó đến được mô hình, và ai quy định ý nghĩa của một nhãn.",
+        "ex": "8 camera × 1080p × 30 fps × 3 byte ≈ 5,4 TB/giờ; mã hoá video 10 Mbps mỗi camera còn khoảng 36 GB/giờ, nhỏ hơn cỡ 150 lần.",
+        "fig": "data-funnel",
+        "figCap": "Từ terabyte thô tới vài khung hình có nhãn: mỗi tầng lọc bớt và làm sạch hơn."
       },
       {
-        "t": "Medallion",
-        "en": "Bronze / Silver / Gold",
-        "d": "Bronze giữ nguyên bản, chỉ ghi thêm. Silver làm sạch và gắn cờ. Gold là bộ dữ liệu huấn luyện. Silver và Gold luôn tạo lại được từ Bronze.",
-        "ex": "Dòng lỗi được đẩy vào bảng telemetry_rejects kèm lý do."
+        "t": "Five pipeline stages (năm chặng của pipeline)",
+        "en": "generation → ingestion → storage → transformation → serving",
+        "d": "Pipeline nào cũng đi qua năm chặng: sinh dữ liệu (camera xe), nạp (Kafka, upload S3), lưu (lakehouse), biến đổi (Spark, dbt), phục vụ (huấn luyện, dashboard). Bên dưới là ba lớp xuyên suốt: điều phối (lịch chạy, thử lại), chất lượng (kiểm tra từng chặng), bảo mật (quyền truy cập, ẩn danh).",
+        "ex": "Lab Day 24: Python + FFmpeg lấy mẫu 2 khung/giây → Bronze → Silver → Gold → Postgres → Metabase; Airflow điều phối, dbt + DuckDB làm cổng kiểm tra."
       },
       {
-        "t": "Event time",
-        "en": "event time vs ingestion time",
-        "d": "Ghép các luồng cảm biến theo thời điểm sự kiện xảy ra, không theo thời điểm dữ liệu tới hệ thống.",
-        "ex": "LiDAR 10 Hz, camera 30 Hz, IMU 200 Hz đến lệch nhau."
+        "t": "Data engine (vòng lặp dữ liệu 10 bước)",
+        "en": "record → trigger → ingest → index → curate → label → dataset → train → eval → deploy",
+        "d": "Mười bước nối thành vòng: lỗi phát hiện khi đánh giá và triển khai trở thành dữ liệu cần thu thêm. Bốn kiểu flywheel khác nhau ở phần được tự động: trigger-first (lọc ngay trên xe), search-first (tìm cảnh hiếm trong log), rollout-first (robot chạy, người sửa lỗi), generate-first (sinh video rồi lọc).",
+        "ex": "Vòng lặp thường hỏng ở bốn chỗ: không đo được, nhãn đến trễ, leakage, không ai chịu trách nhiệm. Mỗi bước cần một đầu ra và một người sở hữu.",
+        "fig": "data-engine",
+        "figCap": "Mười bước khép thành vòng: eval chỉ ra chỗ yếu, curate thu thêm đúng dữ liệu đó."
       },
       {
-        "t": "Idempotent",
-        "en": "idempotent pipeline",
-        "d": "Chạy lại bao nhiêu lần cũng ra cùng kết quả. Chạy lại một ngày thì ghi đè ngày đó, không ghi thêm.",
-        "ex": "Ghi thêm làm 1 000 dòng của ngày 3 nhân đôi."
+        "t": "Batch vs streaming ingest (nạp theo lô hay theo luồng)",
+        "en": "Kafka · Airbyte · upload S3",
+        "d": "Batch gom cả ca rồi upload: rẻ, đơn giản, trễ cỡ giờ. Streaming đẩy từng sự kiện (telemetry) qua Kafka: trễ cỡ giây nhưng tốn vận hành. Tệp video đi thẳng vào object storage; hàng đợi chỉ mang sự kiện nhỏ.",
+        "ex": "Telemetry liên tục → Kafka/Kinesis; database, SaaS → Airbyte theo lịch; video, ảnh → upload thẳng S3/GCS."
       },
       {
-        "t": "Rò rỉ dữ liệu",
-        "en": "leakage",
-        "d": "Mẫu gần trùng với mẫu test lọt vào tập train, làm điểm đánh giá đẹp giả. Với video, các khung liền nhau gần như giống hệt.",
-        "ex": "Phải chia theo cảnh, nơi, thời gian, không chia ngẫu nhiên theo khung."
+        "t": "Medallion: Bronze / Silver / Gold",
+        "en": "nguyên bản → làm sạch → dataset huấn luyện",
+        "d": "Bronze chỉ ghi thêm (append-only), giữ nguyên bản kèm metadata (nguồn, giờ nhận, checksum), áp schema khi đọc. Silver thống nhất đơn vị (m/s, độ, UTC), đẩy dòng lỗi sang bảng reject kèm lý do, gắn cờ chất lượng cho mỗi khung. Gold là dataset huấn luyện. Silver và Gold luôn tạo lại được từ Bronze.",
+        "ex": "Bản ghi Bronze: uri s3://fleet/raw/car12/cam3.mp4, event_ts 14:03:11, ingested 21:04:52, checksum sha256:…"
       },
       {
-        "t": "Nhãn là một đặc tả",
-        "en": "labeling guideline",
-        "d": "Cùng khung hình, quy tắc khác cho nhãn khác. Ngay cả người gán nhãn cũng không khớp nhau 100%, nhất là với vật nhỏ.",
-        "ex": "Người dắt xe đạp: \"người đi bộ + xe đạp\" hay \"người đi xe đạp\"?"
+        "t": "Event time vs ingestion time (thời điểm xảy ra và thời điểm đến)",
+        "en": "join theo event time · watermark",
+        "d": "Ghép các luồng cảm biến theo thời điểm sự kiện xảy ra, không theo thứ tự dữ liệu tới hệ thống. LiDAR 10 Hz, camera 30 Hz, IMU 200 Hz đến theo cụm; phải chờ một khoảng (watermark) cho dữ liệu đến muộn rồi mới ghép.",
+        "ex": "Ảnh tới pipeline lúc 21:04 nhưng chụp lúc 14:03: ghép với LiDAR lúc 14:03, không phải LiDAR vừa tới lúc 21:04.",
+        "fig": "event-time",
+        "figCap": "Ba luồng khác nhịp; dấu đỏ là thời điểm ghép theo event time, sau khi chờ dữ liệu đến muộn."
       },
       {
-        "t": "Pre-label và định tuyến",
-        "en": "auto-label + routing",
-        "d": "Mô hình lớn gán nhãn trước. Nhãn tin cậy cao tự nhận (kèm kiểm tra mẫu), tin cậy vừa cho người sửa, tin cậy thấp cho người vẽ lại.",
-        "ex": "Grounding DINO cho hộp, SAM cho mặt nạ, người duyệt."
+        "t": "Lakehouse & table formats (lakehouse và định dạng bảng)",
+        "en": "object storage · Parquet · Delta / Iceberg / Hudi",
+        "d": "Warehouse có bảng và giao dịch ACID nhưng đắt, không chứa video; data lake rẻ, chứa mọi tệp nhưng không có ACID; lakehouse có cả hai. Video nằm ở object storage, bảng chỉ giữ con trỏ (id, ts, uri, nhãn). Parquet lưu theo cột nên truy vấn hai cột chỉ đọc hai cột. Delta/Iceberg/Hudi coi mỗi commit là một danh sách tệp, tệp cũ không sửa, nên đọc lại được phiên bản cũ (time travel).",
+        "ex": "Xoá dòng trong bảng mà quên xoá tệp → tệp mồ côi cần dọn; tệp bị sửa mà bảng không biết → cần checksum."
       },
       {
-        "t": "Học chủ động",
-        "en": "active learning",
-        "d": "Chọn mẫu \"đáng gán nhãn nhất\" (mô hình đang không chắc, hoặc đa dạng). Phải thắng được cách chọn ngẫu nhiên đã tối ưu thì mới đáng dùng.",
-        "ex": "Lợi ích thường nhỏ: 25,67 → 26,62 mIoU."
+        "t": "ELT for video & decode bottleneck (ELT cho video và nút cổ chai giải mã)",
+        "en": "nạp trước, biến đổi sau · Spark / Flink / dbt",
+        "d": "ETL biến đổi rồi mới nạp: kẹt vì giải mã video quá nặng. ELT nạp tệp gốc vào lakehouse trước, chỉ dòng metadata đi qua bảng. Chọn engine theo độ trễ: Spark cho lô cả ngày, Flink cho từng sự kiện trong vài giây, dbt cho SQL theo lịch. Giải mã video trên CPU thường là nút cổ chai; giảm tải bằng FFmpeg, NVIDIA DALI (giải mã trên GPU), Ray Data.",
+        "ex": "Video 30 fps lấy mỗi khung thứ 6 → khung 0, 6, 12, 18, 24. Video fps không cố định làm lệch chỉ số khung giữa nhãn và ảnh."
+      },
+      {
+        "t": "Orchestration & idempotent backfill (điều phối và chạy lại an toàn)",
+        "en": "DAG · Airflow / Dagster · ghi đè partition",
+        "d": "Bộ điều phối (Airflow, Dagster, Prefect, Flyte) lên lịch, thử lại và chạy bù (backfill) cả đồ thị các bước. Chạy lại một partition hỏng phải ghi đè partition đó, không ghi thêm, để chạy lại bao nhiêu lần cũng ra cùng kết quả.",
+        "ex": "5 ngày × 1 000 hàng; chạy lại ngày 3: ghi đè vẫn 5 000 hàng, ghi thêm thành 6 000 (ngày 3 nhân đôi)."
+      },
+      {
+        "t": "Automated data quality (kiểm chất lượng tự động)",
+        "en": "Great Expectations · Soda · dbt tests",
+        "d": "Kiểm tra viết thành code và chạy mỗi lần có dữ liệu mới, ở mỗi lớp: bảng (schema, null, khoảng giá trị, độ tươi, trùng lặp), ảnh và video (khung đen, khung mờ, hộp nằm ngoài ảnh). Một kiểm tra trượt là lô đó dừng, không sang lớp sau.",
+        "ex": "Bốn số [100, 60, 50, 80] đọc theo xywh góc, xyxy, xywh tâm đều hợp lệ nhưng ra ba hộp khác nhau: kiểm phạm vi hộp và vẽ thử vài hộp sau mỗi lần xuất nhãn. Thử ở mô phỏng."
+      },
+      {
+        "t": "Lineage & dataset versioning (dấu vết nguồn gốc và phiên bản)",
+        "en": "OpenLineage · DataHub · DVC / lakeFS",
+        "d": "Lineage ghi mỗi bảng và mô hình được tạo từ đâu, để truy ngược từ mô hình về log gốc. Một phiên bản dataset phải xác định được bằng commit dữ liệu + danh sách split + mã xử lý.",
+        "ex": "Manifest minh hoạ: lane-frames v3, data lakefs://frames@c7f2a91, split by_scene (seed 7), code git 4be90d1."
+      },
+      {
+        "t": "Data selection: triggers & embedding search (chọn dữ liệu)",
+        "en": "shadow mode · CLIP / SigLIP · vector search",
+        "d": "Trigger chạy ngay trên xe: khi dự đoán của mô hình lệch hành vi người lái quá ngưỡng thì ghi một snapshot ngắn để tải lên; khớp thì bỏ qua. Embedding đưa ảnh và câu chữ vào cùng không gian, nên tìm được khung hình bằng một câu mô tả rồi người duyệt kết quả.",
+        "ex": "Truy vấn \"xe máy cắt ngang trong mưa\" → embedding → FAISS / pgvector / Milvus → các khung gần nhất."
+      },
+      {
+        "t": "Split by scene (chia theo cảnh để tránh rò rỉ)",
+        "en": "leakage giữa các khung liền nhau",
+        "d": "Các khung liền nhau trong video gần như giống hệt. Chia ngẫu nhiên theo khung thì mỗi khung test có một \"anh em\" gần trùng ở train, điểm đánh giá đẹp giả. Phải chia theo cảnh (hoặc theo chuyến, theo cụm).",
+        "ex": "Minh hoạ trong slide: chia theo khung cho val 95%, chia theo cảnh chỉ còn 70%. Nghiên cứu đã tìm thấy leakage chưa biết ngay trong KITTI. Thử ở mô phỏng."
+      },
+      {
+        "t": "Label is a specification (nhãn là một đặc tả)",
+        "en": "guideline · đồng thuận giữa người gán",
+        "d": "Cùng khung hình, guideline khác cho nhãn khác; ngay cả người với người cũng không khớp 100%, nhất là với vật nhỏ, và mức bất đồng đó là \"sàn nhiễu\" của phép đo. Mỗi dạng nhãn (hộp 2D, mask, hộp 3D + track ID, làn, occupancy, quỹ đạo, ngôn ngữ) cần guideline và cách đo đồng thuận riêng.",
+        "ex": "Người dắt xe đạp: guideline A gán riêng \"pedestrian\" + \"bicycle\", guideline B gán một hộp \"cyclist\". Waymo: ba lượt gán lại của người đạt IoU 3D trung bình 80,92% so với nhãn gốc. Test set công khai có ít nhất 3,3% nhãn sai trung bình."
+      },
+      {
+        "t": "Offboard auto-labeling (gán nhãn ngoại tuyến)",
+        "en": "dùng cả khung tương lai · Waymo 3DAL",
+        "d": "Trên xe chỉ có quá khứ và bị giới hạn độ trễ; ngoại tuyến dùng được cả khung trước lẫn sau và mô hình nặng. Waymo 3DAL: chuỗi LiDAR → detector 5 khung → tracking → hiệu chỉnh riêng vật tĩnh / động → hộp 3D theo track.",
+        "ex": "3DAL đạt 3D AP@0.7 85,37 (xe) trên Waymo val; tracking + hiệu chỉnh cộng thêm 8,39 điểm AP@0.8. Học trò học 10% nhãn người + 90% nhãn máy đạt 70,0 AP, gần 71,2 khi dùng 100% nhãn người."
+      },
+      {
+        "t": "Pre-labeling with foundation models (gán nhãn sẵn bằng mô hình lớn)",
+        "en": "Grounded-SAM · Autodistill · SAM 2",
+        "d": "Câu chữ (\"car . pedestrian\") → Grounding DINO ra hộp → SAM ra mask → người duyệt sửa rồi chấp nhận. Autodistill: mô hình lớn (base) gán nhãn cho mô hình nhỏ (target) chạy trên xe. Nhãn máy chỉ thành đáp án chuẩn sau khi người duyệt.",
+        "ex": "SAM 2 trong vòng gán nhãn giảm thời gian vẽ mask từ 37,8 s xuống 4,5 s mỗi khung (8,4 lần): mô hình càng tốt, người càng chuyển từ vẽ sang duyệt."
+      },
+      {
+        "t": "Confidence routing (định tuyến theo độ tin cậy)",
+        "en": "tự chấp nhận · người kiểm · gán lại",
+        "d": "Nhãn máy đi qua bộ định tuyến theo điểm tin cậy và mức bất đồng: điểm cao tự chấp nhận (vẫn audit mẫu); điểm vừa hoặc hai mô hình bất đồng thì người kiểm và sửa; điểm thấp thì người vẽ lại. Ngưỡng phải hiệu chỉnh trên tập gold. Người duyệt dễ gật đầu với nhãn máy sai (automation bias): đo bằng lỗi cấy sẵn, tập gold không pre-label, tỷ lệ chấp nhận theo từng người.",
+        "ex": "Ngưỡng minh hoạ trong slide: ≥ 0,9 tự chấp nhận; 0,4–0,9 người kiểm; < 0,4 gán lại. Thử ở mô phỏng \"Định tuyến nhãn máy\"."
+      },
+      {
+        "t": "Human audit (kiểm nhãn người)",
+        "en": "gold ~10% · audit 10–20%",
+        "d": "Nhãn người làm chuẩn cũng phải kiểm: người thứ hai kiểm mọi nhãn, hoặc auditor kiểm ngẫu nhiên 10–20%. Một con số chất lượng nhãn luôn phải kèm cỡ mẫu đã audit.",
+        "ex": "Audit 200 nhãn, thấy 8 lỗi → precision 96% trên 200 nhãn đã audit."
+      },
+      {
+        "t": "Confident learning (tìm nhãn sai bằng dự đoán ngoài mẫu)",
+        "en": "K-fold · ma trận nhãn × dự đoán · cleanlab",
+        "d": "Cho mô hình dự đoán trên dữ liệu nó chưa thấy (K-fold), đặt nhãn đang có cạnh dự đoán; các ô lệch là nghi ngờ. Với detection, gắn cờ ba loại: thiếu vật (dự đoán chắc, không có nhãn), hộp lệch, sai lớp.",
+        "ex": "Khoảng 645 ảnh tên lửa (missile) trong ImageNet có khả năng bị gán nhầm thành lớp cha \"projectile\"."
+      },
+      {
+        "t": "Active learning (học chủ động)",
+        "en": "uncertainty · core-set · BADGE",
+        "d": "Chọn mẫu đáng gán nhãn nhất thay vì chọn ngẫu nhiên: theo độ bất định (gần biên quyết định), theo độ đa dạng (core-set phủ đều không gian), hoặc kết hợp cả hai (BADGE). Phải thắng được baseline ngẫu nhiên đã được tối ưu, cùng tập khởi đầu, nhiều seed, thì mới đáng dùng.",
+        "ex": "Ví dụ trong slide (mIoU): ngẫu nhiên 25,67; entropy 25,91; core-set 25,96; cách đề xuất 26,62; toàn bộ nhãn 26,83: chênh lệch rất nhỏ.",
+        "fig": "al-bars",
+        "figCap": "Các chiến lược chọn mẫu chỉ hơn ngẫu nhiên (đã tối ưu) một chút; trục dọc bắt đầu từ 25."
+      },
+      {
+        "t": "Teacher–student self-training (tự huấn luyện thầy–trò)",
+        "en": "pseudo-label · Noisy Student",
+        "d": "Thầy học trên nhãn người, sinh nhãn giả cho dữ liệu không nhãn; trò học trên nhãn giả có thêm nhiễu (dropout, augmentation) rồi thành thầy mới. Lỗi của thầy có thể lan sang trò. Các lựa chọn ngân sách khác: tiền huấn luyện tự giám sát (MAE) khi nhiều dữ liệu chưa nhãn, mua nhãn người cho test set và lớp an toàn.",
+        "ex": "Noisy Student: 300 triệu ảnh không nhãn, 88,4% top-1 ImageNet. 3DAL khi đổi miền dữ liệu: 59,4 → 64,2 AP."
       }
     ],
     "formulas": [
@@ -1666,6 +1868,11 @@ export const DAYS: Lesson[] = [
         "tex": "\\text{version} = \\text{data commit} + \\text{split} + \\text{code}",
         "read": "Một phiên bản dataset phải xác định được bằng: dữ liệu nào, chia train/test ra sao, xử lý bằng mã nào.",
         "ex": "Công cụ: DVC, lakeFS, Delta, Iceberg."
+      },
+      {
+        "tex": "5 \\times 1\\,000 + 1\\,000 = 6\\,000 \\ne 5\\,000",
+        "read": "Chạy lại ngày 3 bằng ghi thêm (append) làm dữ liệu ngày 3 nhân đôi; ghi đè partition thì vẫn 5 000.",
+        "ex": "Pipeline idempotent: chạy lại nhiều lần cho cùng kết quả."
       },
       {
         "tex": "\\text{precision} = 1 - \\dfrac{8}{200} = 96\\%",
@@ -1705,15 +1912,16 @@ export const DAYS: Lesson[] = [
     },
     "traps": [
       "Bốn số [100, 60, 50, 80] đọc theo ba định dạng hộp đều hợp lệ, nên sai mà không báo lỗi.",
-      "Nhãn máy chưa phải đáp án cho tới khi người duyệt.",
-      "Người duyệt dễ gật đầu với nhãn máy sai (automation bias).",
-      "Ngay cả test set công khai cũng có ≥ 3,3% nhãn sai.",
-      "Giải mã video trên CPU thường là nút cổ chai."
+      "Chia train/test ngẫu nhiên theo khung hình làm điểm đánh giá đẹp giả.",
+      "Nhãn máy chưa phải đáp án cho tới khi người duyệt; người duyệt dễ gật đầu với nhãn máy sai.",
+      "Ngay cả test set công khai cũng có ≥ 3,3% nhãn sai trung bình.",
+      "Chạy lại một partition bằng ghi thêm làm dữ liệu nhân đôi.",
+      "Học chủ động phải so với baseline ngẫu nhiên đã tối ưu, nhiều seed; nếu không, lợi ích có thể là ảo."
     ],
     "remember": [
       "Giữ nguyên bản, mọi lớp sau đều tạo lại được; chạy lại phải cho cùng kết quả.",
-      "Chia dữ liệu theo cảnh để tránh rò rỉ.",
-      "Máy gán nhãn, máy kiểm tra, người quyết định."
+      "Chia dữ liệu theo cảnh để tránh rò rỉ; version = data + split + code.",
+      "Máy gán nhãn, máy kiểm tra, người quyết định; mọi con số chất lượng kèm cỡ mẫu."
     ],
     "cards": [
       [
@@ -1723,6 +1931,14 @@ export const DAYS: Lesson[] = [
       [
         "ETL hay ELT cho video?",
         "ELT: nạp tệp gốc trước, biến đổi bảng metadata sau."
+      ],
+      [
+        "Ghép LiDAR với camera theo thời điểm nào?",
+        "Event time (lúc xảy ra), có chờ dữ liệu đến muộn; không theo lúc dữ liệu tới."
+      ],
+      [
+        "Parquet nhanh hơn ở đâu?",
+        "Lưu theo cột: truy vấn hai cột chỉ đọc hai cột, và nén tốt hơn."
       ],
       [
         "Confident learning tìm nhãn sai thế nào?",

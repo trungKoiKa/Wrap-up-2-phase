@@ -158,6 +158,124 @@ FIGS['mahalanobis'] = function () {
 };
 
 
+// Day 23 · Một pixel là cả một tia
+FIGS['pixel-ray'] = function () {
+  var out = '', ox = 40, oy = 110, ang = -0.17;
+  var P = function (d) { return [ox + d * Math.cos(ang), oy + d * Math.sin(ang)]; };
+  out += fel('rect', { x: ox - 22, y: oy - 10, width: 20, height: 20, rx: 3, class: 'sv-cam' }) + ftx(ox - 30, oy + 28, 'camera');
+  out += fel('line', { x1: ox + 30, y1: oy - 40, x2: ox + 30, y2: oy + 40, class: 'sv-ax sv-bold' }) + ftx(ox + 34, oy - 44, 'ảnh');
+  var px = P(30); out += fel('circle', { cx: px[0], cy: px[1], r: 4, class: 'sv-ball' }) + ftx(px[0] + 6, px[1] + 18, '1 pixel');
+  var end = P(520); out += fel('line', { x1: ox, y1: oy, x2: end[0], y2: end[1], class: 'sv-ray' });
+  [[130, 10, 'vật nhỏ ở 10 m'], [290, 22, 'xe ở 25 m'], [470, 34, 'xe tải ở 45 m']].forEach(function (b) {
+    var c = P(b[0]);
+    out += fel('rect', { x: (c[0] - b[1] / 2).toFixed(1), y: (c[1] - b[1] / 2).toFixed(1), width: b[1], height: b[1], class: 'sv-boxA' }) + ftx(c[0] - 30, c[1] + b[1] / 2 + 16, b[2]);
+  });
+  out += ftx(20, 182, 'Cùng một pixel: chỉ từ ảnh không biết vật nằm đâu trên tia.') + ftx(20, 198, 'Cần thêm kích thước đã biết, chỗ chạm đất, stereo hoặc LiDAR/radar.');
+  return fsvg(560, 206, 'Một pixel ứng với cả một tia trong không gian', out);
+};
+
+// Day 23 · Ảnh phối cảnh và BEV
+FIGS['persp-vs-bev'] = function () {
+  var out = '';
+  out += ftx(10, 16, 'Ảnh phối cảnh (camera)', { class: 'sv-tag' });
+  out += fel('rect', { x: 10, y: 24, width: 250, height: 150, class: 'sv-ghost' });
+  out += fel('line', { x1: 10, y1: 80, x2: 260, y2: 80, class: 'sv-dash' }) + ftx(200, 76, 'chân trời');
+  out += fel('line', { x1: 40, y1: 174, x2: 128, y2: 80, class: 'sv-ax' }) + fel('line', { x1: 220, y1: 174, x2: 142, y2: 80, class: 'sv-ax' });
+  out += fel('rect', { x: 92, y: 120, width: 70, height: 40, rx: 4, class: 'sv-car' }) + ftx(168, 146, 'xe gần: to');
+  out += fel('rect', { x: 128, y: 86, width: 16, height: 10, rx: 2, class: 'sv-car' }) + ftx(150, 96, 'xe xa: bé');
+  out += ftx(300, 16, 'BEV (nhìn từ trên xuống)', { class: 'sv-tag' });
+  out += fel('rect', { x: 300, y: 24, width: 250, height: 150, class: 'sv-ghost' });
+  out += fel('line', { x1: 380, y1: 24, x2: 380, y2: 174, class: 'sv-ax' }) + fel('line', { x1: 470, y1: 24, x2: 470, y2: 174, class: 'sv-ax' });
+  out += fel('rect', { x: 412, y: 120, width: 26, height: 44, rx: 3, class: 'sv-car' }) + ftx(444, 150, 'xe gần');
+  out += fel('rect', { x: 412, y: 40, width: 26, height: 44, rx: 3, class: 'sv-car' }) + ftx(444, 66, 'xe xa: cùng cỡ');
+  out += farrow(425, 190, 425, 172) + ftx(434, 192, 'xe của bạn');
+  return fsvg(560, 200, 'Ảnh phối cảnh và BEV', out);
+};
+
+// Day 23 · Early / mid / late fusion
+FIGS['fusion-levels'] = function () {
+  var out = '', rows = [['Early', 'gộp dữ liệu thô', 'một mạng → hộp 3D'], ['Mid', 'gộp đặc trưng (BEV)', 'heads → hộp 3D'], ['Late', 'gộp hộp / track', 'hộp 3D hợp nhất']];
+  rows.forEach(function (r, i) {
+    var y = 14 + i * 66, srcEnd = [166, 262, 364][i], mx = [190, 288, 388][i];
+    out += ftx(8, y + 26, r[0], { class: 'sv-tag' }) + ftx(8, y + 42, r[1]);
+    [['ảnh', 0], ['LiDAR', 1]].forEach(function (s) {
+      var yy = y + s[1] * 30;
+      out += fel('rect', { x: 120, y: yy, width: 46, height: 22, rx: 4, class: 'sv-img' }) + ftx(126, yy + 15, s[0]);
+      if (i >= 1) out += fel('rect', { x: 200, y: yy, width: 62, height: 22, rx: 4, class: 'sv-img' }) + ftx(205, yy + 15, 'backbone');
+      if (i === 2) out += fel('rect', { x: 292, y: yy, width: 72, height: 22, rx: 4, class: 'sv-img' }) + ftx(297, yy + 15, 'detector');
+      out += farrow(srcEnd, yy + 11, mx, y + 26);
+    });
+    out += fel('rect', { x: mx, y: y + 14, width: 30, height: 24, rx: 12, class: 'sv-hl' }) + ftx(mx + 15, y + 31, '+', { class: 'sv-tag', 'text-anchor': 'middle' });
+    out += farrow(mx + 30, y + 26, 432, y + 26) + fel('rect', { x: 434, y: y + 14, width: 120, height: 24, rx: 4, class: 'sv-boxA' }) + ftx(440, y + 31, r[2]);
+  });
+  return fsvg(560, 206, 'Ba tầng hợp nhất: early, mid, late', out);
+};
+
+// Day 23 · Track-then-fuse và fuse-then-track
+FIGS['track-fuse'] = function () {
+  var out = '';
+  function box(x, y, w, t, cls) { return fel('rect', { x: x, y: y, width: w, height: 26, rx: 5, class: cls || 'sv-img' }) + ftx(x + 6, y + 17, t); }
+  out += ftx(8, 16, 'Track-then-fuse: một track, update lần lượt', { class: 'sv-tag' });
+  out += box(8, 26, 70, 'track x, P', 'sv-hl') + farrow(78, 39, 92, 39) + box(94, 26, 60, 'predict') + farrow(154, 39, 168, 39) + box(170, 26, 92, 'update LiDAR') + farrow(262, 39, 276, 39) + box(278, 26, 60, 'predict') + farrow(338, 39, 352, 39) + box(354, 26, 100, 'update camera') + farrow(454, 39, 468, 39) + box(470, 26, 80, 'track x, P', 'sv-hl');
+  out += ftx(8, 88, 'Fuse-then-track: gộp phép đo trước, update một lần', { class: 'sv-tag' });
+  out += box(8, 98, 76, 'đo LiDAR') + box(8, 130, 76, 'đo camera') + farrow(84, 111, 110, 126) + farrow(84, 143, 110, 132);
+  out += box(112, 116, 108, 'hàm gộp', 'sv-boxB') + farrow(220, 129, 236, 129) + box(238, 116, 56, 'z gộp') + farrow(294, 129, 308, 129) + box(310, 116, 60, 'predict') + farrow(370, 129, 384, 129) + box(386, 116, 66, 'update') + farrow(452, 129, 468, 129) + box(470, 116, 80, 'track x, P', 'sv-hl');
+  return fsvg(560, 156, 'Track-then-fuse và fuse-then-track', out);
+};
+
+// Day 24 · Phễu dữ liệu
+FIGS['data-funnel'] = function () {
+  var out = '', L = [['Thô: 3–6 TB/giờ mỗi xe', 520], ['Mã hoá video: ~36 GB/giờ (≈150× nhỏ hơn)', 430], ['Bronze: nguyên bản, chỉ ghi thêm', 340], ['Silver: làm sạch, gắn cờ, cổng 1', 250], ['Gold: dataset huấn luyện, cổng 2', 170], ['vài khung có nhãn', 100]];
+  L.forEach(function (l, i) {
+    var y = 10 + i * 30, x = (560 - l[1]) / 2;
+    out += fel('rect', { x: x, y: y, width: l[1], height: 24, rx: 5, class: i < 2 ? 'sv-img' : i < 5 ? 'sv-hl' : 'sv-boxA' });
+    out += ftx(280, y + 16, l[0], { 'text-anchor': 'middle', class: 'sv-tag' });
+  });
+  return fsvg(560, 192, 'Phễu dữ liệu từ log thô tới dataset có nhãn', out);
+};
+
+// Day 24 · Data engine 10 bước
+FIGS['data-engine'] = function () {
+  var out = '', steps = ['record', 'trigger', 'ingest', 'index', 'curate', 'label', 'dataset', 'train', 'eval', 'deploy'], cx = 280, cy = 112, rx = 210, ry = 78;
+  out += fel('ellipse', { cx: cx, cy: cy, rx: rx, ry: ry, class: 'sv-ghost' });
+  steps.forEach(function (s, i) {
+    var a = -Math.PI / 2 + i * 2 * Math.PI / 10, x = cx + rx * Math.cos(a), y = cy + ry * Math.sin(a);
+    out += fel('rect', { x: (x - 36).toFixed(1), y: (y - 12).toFixed(1), width: 72, height: 24, rx: 12, class: i === 8 || i === 4 ? 'sv-boxB' : 'sv-hl' });
+    out += ftx(x.toFixed(1), (y + 4).toFixed(1), (i + 1) + ' ' + s, { 'text-anchor': 'middle', class: 'sv-tag' });
+  });
+  var e = [cx + rx * Math.cos(-Math.PI / 2 + 8 * Math.PI / 5), cy + ry * Math.sin(-Math.PI / 2 + 8 * Math.PI / 5)], c = [cx + rx * Math.cos(-Math.PI / 2 + 4 * Math.PI / 5), cy + ry * Math.sin(-Math.PI / 2 + 4 * Math.PI / 5)];
+  out += fel('path', { d: 'M' + (e[0] + 20).toFixed(1) + ' ' + (e[1] + 8).toFixed(1) + ' Q ' + cx + ' ' + (cy + 10) + ' ' + (c[0] + 30).toFixed(1) + ' ' + (c[1] - 8).toFixed(1), class: 'sv-cut', fill: 'none', 'stroke-dasharray': '5 4' });
+  out += ftx(cx, cy - 22, 'eval chỉ chỗ yếu → curate thu thêm', { 'text-anchor': 'middle', class: 'sv-tag' });
+  return fsvg(560, 206, 'Vòng lặp dữ liệu 10 bước', out);
+};
+
+// Day 24 · Event time và ingestion time
+FIGS['event-time'] = function () {
+  var out = '', l = 90, r = 540, T = function (t) { return l + t * (r - l); };
+  out += ftx(8, 16, 'event time (lúc xảy ra) →', { class: 'sv-tag' });
+  [['LiDAR 10 Hz', 0.1, 40], ['camera 30 Hz', 1 / 30, 74], ['IMU 200 Hz (đến theo cụm)', 0.02, 108]].forEach(function (s) {
+    out += ftx(8, s[2] + 4, s[0].split(' (')[0]) + fel('line', { x1: l, y1: s[2], x2: r, y2: s[2], class: 'sv-grid' });
+    for (var t = 0; t <= 1.0001; t += s[1]) out += fel('circle', { cx: T(t).toFixed(1), cy: s[2], r: s[1] < 0.05 ? 1.6 : 3, class: s[1] < 0.05 ? 'sv-dot' : 'sv-ball' });
+  });
+  [0.3, 0.7].forEach(function (t) { out += fel('line', { x1: T(t), y1: 26, x2: T(t), y2: 120, class: 'sv-cut' }); });
+  out += ftx(T(0.3) + 4, 134, 'ghép theo event time');
+  out += fel('rect', { x: T(0.9), y: 26, width: T(1) - T(0.9), height: 94, class: 'sv-band', style: 'fill-opacity:.2' }) + ftx(T(1), 16, 'watermark: chờ dữ liệu đến muộn', { 'text-anchor': 'end' });
+  return fsvg(560, 144, 'Ghép các luồng theo event time', out);
+};
+
+// Day 24 · Học chủ động so với ngẫu nhiên
+FIGS['al-bars'] = function () {
+  var out = '', data = [['Ngẫu nhiên', 25.67], ['Entropy', 25.91], ['Core-set', 25.96], ['Đề xuất (CDAL)', 26.62], ['Toàn bộ nhãn', 26.83]], lo = 25, hi = 27, base = 160, H = 130;
+  out += fel('line', { x1: 40, y1: base, x2: 540, y2: base, class: 'sv-ax' }) + ftx(36, base + 4, '25', { 'text-anchor': 'end' }) + ftx(36, base - H + 4, '27', { 'text-anchor': 'end' });
+  data.forEach(function (d, i) {
+    var x = 60 + i * 96, h = (d[1] - lo) / (hi - lo) * H;
+    out += fel('rect', { x: x, y: (base - h).toFixed(1), width: 60, height: h.toFixed(1), class: i === 0 ? 'sv-boxB' : i === 4 ? 'sv-boxA' : 'sv-hl' });
+    out += ftx(x + 30, base - h - 6, d[1].toFixed(2).replace('.', ','), { 'text-anchor': 'middle', class: 'sv-tag' }) + ftx(x + 30, base + 16, d[0], { 'text-anchor': 'middle' });
+  });
+  out += ftx(40, 14, 'mIoU (trục cắt, bắt đầu từ 25) · số trong slide', { class: 'sv-tag' });
+  return fsvg(560, 186, 'Học chủ động so với chọn ngẫu nhiên', out);
+};
+
 // Day 16 · Hạ gradient
 SIMS.day16 = {
   title: 'Thả quả bóng xuống dốc',
@@ -826,7 +944,7 @@ var BYTE_SIM = {
 SIMS.day22 = [HUNGARIAN_SIM, BYTE_SIM, MOT_SIM];
 
 // Day 23 · Khoảng cách từ chân xe
-SIMS.day23 = {
+var GROUND_SIM = {
   title: 'Đoán khoảng cách từ chỗ bánh xe chạm đường',
   intro: 'Nhìn từ bên hông: camera cao h mét nhìn ra đường phẳng. Chân xe nằm thấp hơn đường chân trời trong ảnh bao nhiêu pixel thì suy ra được khoảng cách Z = f·h / (v − c_y), với f = 720 px.',
   tries: ['Đặt 40 px: ra 29,7 m như slide; vùng tô màu là sai số khi lệch ±1 px.', 'Kéo xuống 10 px (vật ở xa, gần chân trời): lệch 1 px sai tới hàng chục mét.', 'Kéo lên 150 px (vật ở gần): sai số chỉ vài chục cm.', 'Đổi độ cao camera: cùng pixel, khoảng cách tỉ lệ thuận với h. Xe nhún làm h đổi là công thức sai.'],
@@ -858,8 +976,82 @@ SIMS.day23 = {
   },
 };
 
+// Day 23 · Radar chỉ thấy vận tốc hướng tâm
+var RADAR_SIM = {
+  title: 'Radar Doppler: chỉ thấy một nửa vận tốc',
+  intro: 'Nhìn từ trên xuống: radar ở bên trái, nhìn sang phải. Một xe cách 30 m theo góc φ, đang chạy theo hướng ψ với tốc độ v. Mũi tên xanh lá là phần radar đo được (dọc tia nhìn); mũi tên đứt nét là phần vuông góc mà radar không thấy.',
+  tries: ['Giữ mặc định (φ = 25°, ψ = 100°, v = 15 m/s): radar đo +3,9 m/s đang ra xa, bỏ sót 14,5 m/s như slide.', 'Đặt ψ = φ (xe chạy thẳng ra xa theo tia nhìn): radar đo đủ cả 15 m/s.', 'Đặt ψ = φ + 90° (xe chạy ngang qua trục nhìn): Doppler gần 0 dù xe chạy nhanh. Vì vậy cần camera/LiDAR cho hướng và vị trí.', 'Đặt ψ = φ + 180°: xe lao thẳng về phía radar, vận tốc hướng tâm âm (đang lại gần).'],
+  build: function (ui) {
+    var phi = 25, psi = 100, v = 15;
+    ui.slider({ label: 'Góc vị trí xe φ', min: -60, max: 60, step: 5, value: phi, fmt: function (x) { return x + '°'; } }, function (x) { phi = x; draw(); });
+    ui.slider({ label: 'Hướng xe chạy ψ', min: 0, max: 355, step: 5, value: psi, fmt: function (x) { return x + '°'; } }, function (x) { psi = x; draw(); });
+    ui.slider({ label: 'Tốc độ v', min: 0, max: 30, step: 1, value: v, fmt: function (x) { return x + ' m/s'; } }, function (x) { v = x; draw(); });
+    var W = 560, H = 300, ox = 50, oy = 170, R0 = 300, k = 7;
+    function draw() {
+      var svg = ui.svg(W, H), rad = Math.PI / 180, ux = Math.cos(phi * rad), uy = Math.sin(phi * rad);
+      var tx = ox + R0 * ux, ty = oy - R0 * uy, vx = v * Math.cos(psi * rad), vy = v * Math.sin(psi * rad);
+      var vr = vx * ux + vy * uy, vt = Math.sqrt(Math.max(0, v * v - vr * vr));
+      [-60, 60].forEach(function (a) { S('line', { x1: ox, y1: oy, x2: ox + 340 * Math.cos(a * rad), y2: oy - 340 * Math.sin(a * rad), class: 'sv-dash' }, svg); });
+      S('rect', { x: ox - 16, y: oy - 10, width: 16, height: 20, rx: 3, class: 'sv-cam' }, svg); T(svg, ox - 14, oy + 26, 'radar');
+      S('line', { x1: ox, y1: oy, x2: tx, y2: ty, class: 'sv-ray' }, svg); T(svg, ox + 120 * ux, oy - 120 * uy - 8, 'tia nhìn');
+      S('rect', { x: tx - 10, y: ty - 10, width: 20, height: 20, rx: 4, class: 'sv-car' }, svg);
+      function arrow(x2, y2, cls, dash) {
+        S('line', { x1: tx, y1: ty, x2: x2, y2: y2, class: cls, style: dash ? 'stroke-dasharray:5 4' : '' }, svg);
+        var an = Math.atan2(y2 - ty, x2 - tx); S('path', { d: 'M' + x2 + ' ' + y2 + 'L' + (x2 - 9 * Math.cos(an - 0.4)) + ' ' + (y2 - 9 * Math.sin(an - 0.4)) + 'L' + (x2 - 9 * Math.cos(an + 0.4)) + ' ' + (y2 - 9 * Math.sin(an + 0.4)) + 'Z', class: 'sv-cam' }, svg);
+      }
+      if (v > 0) {
+        arrow(tx + k * vx, ty - k * vy, 'sv-pred sv-bold');
+        T(svg, tx + k * vx + 6, ty - k * vy, 'v = ' + v + ' m/s');
+        if (Math.abs(vr) > 0.05) arrow(tx + k * vr * ux, ty - k * vr * uy, 'sv-fuse sv-bold');
+        var px = vx - vr * ux, py = vy - vr * uy;
+        if (vt > 0.05) arrow(tx + k * px, ty - k * py, 'sv-ax', true);
+      }
+      var c = v ? Math.abs(vr) / v : 1;
+      out(ui, [['Radar đo (hướng tâm)', (vr >= 0 ? '+' : '') + vn(vr, 1) + ' m/s · ' + (Math.abs(vr) < 0.05 ? 'đứng yên theo tia' : vr > 0 ? 'đang ra xa' : 'đang lại gần'), 'ok'], ['Phần không thấy (vuông góc)', vn(vt, 1) + ' m/s', vt > v * 0.7 ? 'bad' : vt > v * 0.3 ? 'warn' : 'ok'], ['Tỷ lệ radar thấy', Math.round(c * 100) + '%'], ['Đọc là', v === 0 ? 'Xe đứng yên.' : c < 0.2 ? 'Xe chạy gần như ngang qua tia nhìn: Doppler gần 0, radar tưởng xe chậm.' : c > 0.95 ? 'Xe chạy dọc tia nhìn: radar đo gần đủ tốc độ.' : 'Radar chỉ đo được thành phần dọc tia; hướng và tốc độ đầy đủ cần ghép với camera/LiDAR.']]);
+    }
+    draw();
+  },
+};
+
+// Day 23 · Lift-splat: rải đặc trưng pixel theo phân phối độ sâu
+var LSS_SIM = {
+  title: 'Lift-splat: một pixel rải lên BEV theo độ sâu',
+  intro: 'Nhìn từ trên xuống dọc tia của một pixel. Vật thật nằm ở độ sâu d (khung xanh). Mạng không biết chắc độ sâu nên đoán một phân phối (cột cam) quanh giá trị μ với độ không chắc σ, rồi rải đặc trưng của pixel vào các ô BEV theo đúng tỷ lệ đó (ô càng đậm càng nhận nhiều đặc trưng).',
+  tries: ['Giữ σ = 3 m, μ = d = 30 m: chỉ khoảng một nửa đặc trưng rơi sát vật, phần còn lại nhoè ra hai bên. Kéo σ xuống 1,5 m thì phần lớn rơi đúng chỗ.', 'Kéo σ lên 12 m: đặc trưng nhoè dọc cả tia, ô đúng chỉ nhận một phần nhỏ. Đây là lý do BEVDepth giám sát độ sâu bằng LiDAR.', 'Giữ σ nhỏ nhưng đặt μ = 20 m (đoán sai mà rất tự tin): đặc trưng dồn vào chỗ không có gì, sinh vật ma.', 'Vật càng xa (d = 50 m) thì cùng một σ tương đối càng trải rộng hơn theo mét.'],
+  build: function (ui) {
+    var d = 30, mu = 30, sg = 3, bin = 2, N = 30;
+    ui.slider({ label: 'Độ sâu thật của vật d', min: 6, max: 56, step: 2, value: d, fmt: function (x) { return x + ' m'; } }, function (x) { d = x; draw(); });
+    ui.slider({ label: 'Mạng đoán độ sâu μ', min: 6, max: 56, step: 2, value: mu, fmt: function (x) { return x + ' m'; } }, function (x) { mu = x; draw(); });
+    ui.slider({ label: 'Độ không chắc σ', min: 1, max: 15, step: 0.5, value: sg, fmt: function (x) { return vn(x, 1) + ' m'; } }, function (x) { sg = x; draw(); });
+    var W = 560, H = 240, l = 50, r = 545, base = 130, X = function (m) { return l + m / (N * bin) * (r - l); };
+    function draw() {
+      var svg = ui.svg(W, H), w = [], s = 0, i;
+      for (i = 0; i < N; i++) { var c = (i + 0.5) * bin, g = Math.exp(-0.5 * Math.pow((c - mu) / sg, 2)); w.push(g); s += g; }
+      w = w.map(function (x) { return x / s; });
+      var mx = Math.max.apply(null, w);
+      S('rect', { x: l - 34, y: base - 8, width: 18, height: 16, rx: 3, class: 'sv-cam' }, svg); T(svg, l - 36, base + 24, 'camera');
+      for (i = 0; i < N; i++) {
+        var x0 = X(i * bin), x1 = X((i + 1) * bin);
+        S('rect', { x: x0, y: base - 10, width: x1 - x0 - 1, height: 20, class: 'sv-hl', style: 'fill-opacity:' + (0.05 + 0.95 * w[i] / mx).toFixed(2) + ';stroke-opacity:.3' }, svg);
+        S('rect', { x: x0 + 1, y: base - 16 - 70 * w[i] / mx, width: x1 - x0 - 3, height: 70 * w[i] / mx, class: 'sv-band', style: 'fill-opacity:.7' }, svg);
+      }
+      S('line', { x1: l, y1: base, x2: r, y2: base, class: 'sv-ray' }, svg);
+      S('rect', { x: X(d - 2.25), y: base - 14, width: X(4.5) - X(0), height: 28, rx: 3, class: 'sv-boxA', style: 'fill-opacity:0' }, svg);
+      T(svg, X(d), base + 30, 'vật thật', { 'text-anchor': 'middle' });
+      [0, 10, 20, 30, 40, 50, 60].forEach(function (m) { T(svg, X(m), H - 30, m + ' m', { 'text-anchor': 'middle' }); });
+      T(svg, l, 18, 'cột cam: phân phối độ sâu mạng đoán · dải ô: đặc trưng rải lên BEV dọc tia');
+      var near = 0; for (i = 0; i < N; i++) if (Math.abs((i + 0.5) * bin - d) <= 2.5) near += w[i];
+      var spread = 0; w.forEach(function (x, j) { if (x > 0.02) spread += bin; });
+      out(ui, [['Đặc trưng rơi trong ±2,5 m quanh vật', Math.round(near * 100) + '%', near > 0.6 ? 'ok' : near > 0.25 ? 'warn' : 'bad'], ['Đặc trưng trải dài', '≈ ' + spread + ' m dọc tia'], ['Đọc là', near > 0.6 ? 'Độ sâu chắc và đúng: BEV sắc nét đúng chỗ vật.' : Math.abs(mu - d) > 2 * sg ? 'Đoán sai mà tự tin: đặc trưng dồn vào chỗ không có vật (vật ma).' : 'Độ sâu không chắc: đặc trưng nhoè dọc tia, BEV mờ.']]);
+    }
+    draw();
+  },
+};
+
+SIMS.day23 = [GROUND_SIM, LSS_SIM, RADAR_SIM];
+
 // Day 24 · Chia train/test
-SIMS.day24 = {
+var SPLIT_SIM = {
   title: 'Chia train/test: theo khung hay theo cảnh?',
   intro: 'Có 4 cảnh lái xe, mỗi cảnh 10 khung liền nhau (các khung cùng cảnh gần như giống hệt). Ta lấy khoảng 25% làm test. Ô viền đỏ là khung test có "anh em sinh đôi" ngay sát bên trong tập train.',
   tries: ['Chọn "Ngẫu nhiên theo khung": gần như khung test nào cũng có bản gần trùng trong train, điểm test sẽ đẹp giả.', 'Chọn "Theo cảnh": cả một cảnh nằm trọn bên test, không còn rò rỉ.', 'Bấm "Chia lại" vài lần ở chế độ ngẫu nhiên: rò rỉ lần nào cũng cao.'],
@@ -888,6 +1080,71 @@ SIMS.day24 = {
     draw();
   },
 };
+
+// Day 24 · Định tuyến nhãn máy theo điểm tin cậy
+var ROUTING_SIM = {
+  title: 'Định tuyến nhãn máy: tự nhận, người kiểm hay gán lại?',
+  intro: '60 nhãn do máy gán, mỗi chấm là một nhãn đặt theo điểm tin cậy (trục ngang). Chấm xanh lá là nhãn đúng, vòng đỏ đứt là nhãn sai (người chưa biết). Hai ngưỡng chia ba làn: tự chấp nhận, người kiểm, gán lại. Thời gian người làm là giả định minh hoạ: kiểm 15 s/nhãn, vẽ lại 60 s/nhãn, audit 10% làn tự nhận.',
+  tries: ['Giữ 0,9 và 0,4 (như slide): vài nhãn sai vẫn lọt qua làn tự nhận, chi phí người vừa phải.', 'Hạ ngưỡng tự nhận xuống 0,6: tiết kiệm nhiều giờ người nhưng nhiều nhãn sai lọt vào dataset hơn.', 'Nâng ngưỡng tự nhận lên 0,97: gần như không lọt lỗi nhưng người phải kiểm gần hết.', 'Ngưỡng phải hiệu chỉnh trên tập gold; điểm tin cậy của mô hình không tự động bằng xác suất đúng.'],
+  build: function (ui) {
+    var hiT = 0.9, loT = 0.4, r = rng(24), L = [], i;
+    for (i = 0; i < 60; i++) { var s = Math.min(0.995, Math.pow(r(), 0.3)), ok = r() < 0.05 + 0.95 * Math.pow(s, 2.2); L.push({ s: s, ok: ok, j: r() }); }
+    ui.slider({ label: 'Ngưỡng tự chấp nhận', min: 0.5, max: 0.99, step: 0.01, value: hiT, fmt: function (x) { return '≥ ' + vn(x); } }, function (x) { hiT = Math.max(x, loT + 0.02); draw(); });
+    ui.slider({ label: 'Ngưỡng gán lại', min: 0.1, max: 0.6, step: 0.02, value: loT, fmt: function (x) { return '< ' + vn(x); } }, function (x) { loT = Math.min(x, hiT - 0.02); draw(); });
+    var W = 560, H = 200, l = 30, rr = 545, X = function (s) { return l + s * (rr - l); };
+    function draw() {
+      var svg = ui.svg(W, H);
+      S('rect', { x: X(0), y: 24, width: X(loT) - X(0), height: 130, class: 'sv-boxB', style: 'fill-opacity:.25' }, svg);
+      S('rect', { x: X(loT), y: 24, width: X(hiT) - X(loT), height: 130, class: 'sv-img', style: 'fill-opacity:.35' }, svg);
+      S('rect', { x: X(hiT), y: 24, width: X(1) - X(hiT), height: 130, class: 'sv-hl', style: 'fill-opacity:.35' }, svg);
+      T(svg, X(loT / 2), 18, 'gán lại', { 'text-anchor': 'middle', class: 'sv-tag' });
+      T(svg, X((loT + hiT) / 2), 18, 'người kiểm', { 'text-anchor': 'middle', class: 'sv-tag' });
+      T(svg, X((hiT + 1) / 2), 18, 'tự nhận', { 'text-anchor': 'middle', class: 'sv-tag' });
+      L.forEach(function (p) { S('circle', { cx: X(p.s), cy: 34 + p.j * 110, r: 5, class: p.ok ? 'sv-id3' : 'sv-lost' }, svg); });
+      S('line', { x1: l, y1: 160, x2: rr, y2: 160, class: 'sv-ax' }, svg);
+      [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(function (t) { T(svg, X(t), 176, vn(t, 1), { 'text-anchor': 'middle' }); });
+      T(svg, rr, 192, 'điểm tin cậy của máy', { 'text-anchor': 'end' });
+      var auto = L.filter(function (p) { return p.s >= hiT; }), rev = L.filter(function (p) { return p.s >= loT && p.s < hiT; }), rel = L.filter(function (p) { return p.s < loT; });
+      var leak = auto.filter(function (p) { return !p.ok; }).length, sec = rev.length * 15 + rel.length * 60 + Math.ceil(auto.length * 0.1) * 15;
+      out(ui, [['Tự nhận · người kiểm · gán lại', auto.length + ' · ' + rev.length + ' · ' + rel.length], ['Nhãn sai lọt vào dataset', leak + ' (' + (auto.length ? Math.round(leak / auto.length * 100) : 0) + '% làn tự nhận)', leak === 0 ? 'ok' : leak <= 2 ? 'warn' : 'bad'], ['Thời gian người (giả định)', Math.round(sec / 60) + ' phút', sec > 30 * 60 ? 'warn' : 'ok'], ['Đọc là', leak > 2 ? 'Ngưỡng tự nhận thấp: tiết kiệm công người nhưng lỗi lọt vào dataset.' : sec > 30 * 60 ? 'An toàn nhưng tốn công: người gần như kiểm hết.' : 'Cân bằng: phần lớn nhãn tự nhận, người dồn sức vào làn khó.']]);
+    }
+    draw();
+  },
+};
+
+// Day 24 · Bốn số, ba cách đọc hộp
+var BOXFMT_SIM = {
+  title: 'Bốn số, ba cách đọc: hộp sai mà không báo lỗi',
+  intro: 'Ảnh 320 × 200. Bốn số [a, b, c, d] được đọc theo ba định dạng: xywh góc trên trái (COCO), xyxy hai góc (Pascal VOC, torchvision), xywh tâm hộp (YOLO, sau khi nhân lại kích thước ảnh). Cả ba đều là bốn số hợp lệ, nhưng ra ba hộp khác nhau.',
+  tries: ['Giữ [100, 60, 50, 80] như slide: hộp xyxy bị méo (x2 < x1), hộp tâm lệch nửa kích thước.', 'Đặt c > a và d > b: cả ba đều "trông được", nên lỗi định dạng rất khó thấy bằng mắt nếu không vẽ thử.', 'Kéo a gần mép phải: hộp đọc theo góc trên trái tràn ra ngoài ảnh; một kiểm tra phạm vi đơn giản bắt được lỗi này.'],
+  build: function (ui) {
+    var a = 100, b = 60, c = 50, d = 80;
+    [['a', 0, 320, a], ['b', 0, 200, b], ['c', 0, 200, c], ['d', 0, 200, d]].forEach(function (s, i) {
+      ui.slider({ label: 'Số thứ ' + (i + 1) + ' (' + s[0] + ')', min: s[1], max: s[2], step: 2, value: s[3], fmt: function (x) { return String(x); } }, function (x) { if (i === 0) a = x; else if (i === 1) b = x; else if (i === 2) c = x; else d = x; draw(); });
+    });
+    var W = 560, H = 270, k = 1.25, ox = 20, oy = 14;
+    function draw() {
+      var svg = ui.svg(W, H), boxes = [['xywh góc (COCO)', a, b, a + c, b + d, 'sv-pred'], ['xyxy hai góc', a, b, c, d, 'sv-meas'], ['xywh tâm (YOLO)', a - c / 2, b - d / 2, a + c / 2, b + d / 2, 'sv-fuse']];
+      S('rect', { x: ox, y: oy, width: 320 * k, height: 200 * k, class: 'sv-ghost' }, svg);
+      T(svg, ox + 4, oy + 200 * k + 16, 'ảnh 320 × 200');
+      boxes.forEach(function (bx, i) {
+        var x1 = Math.min(bx[1], bx[3]), x2 = Math.max(bx[1], bx[3]), y1 = Math.min(bx[2], bx[4]), y2 = Math.max(bx[2], bx[4]);
+        S('rect', { x: ox + x1 * k, y: oy + y1 * k, width: Math.max(1, (x2 - x1) * k), height: Math.max(1, (y2 - y1) * k), class: bx[5], style: 'fill:none;stroke-width:2.5' + (i === 1 ? ';stroke-dasharray:6 4' : '') }, svg);
+        S('line', { x1: 430, y1: 30 + i * 22, x2: 452, y2: 30 + i * 22, class: bx[5], style: 'stroke-width:2.5' }, svg); T(svg, 458, 34 + i * 22, bx[0]);
+      });
+      function check(bx) {
+        var bad = [];
+        if (bx[3] <= bx[1] || bx[4] <= bx[2]) bad.push('x2 ≤ x1 hoặc y2 ≤ y1');
+        if (Math.min(bx[1], bx[3]) < 0 || Math.max(bx[1], bx[3]) > 320 || Math.min(bx[2], bx[4]) < 0 || Math.max(bx[2], bx[4]) > 200) bad.push('ra ngoài ảnh');
+        return bad.length ? '✗ ' + bad.join(', ') : '✓ hợp lệ';
+      }
+      out(ui, boxes.map(function (bx) { var ck = check(bx); return [bx[0] + ' → [x1, y1, x2, y2]', '[' + [bx[1], bx[2], bx[3], bx[4]].map(function (x) { return Math.round(x); }).join(', ') + '] ' + ck, ck.charAt(0) === '✓' ? 'ok' : 'bad']; }).concat([['YOLO thật sự lưu', 'tâm và kích thước chia cho ảnh: [' + [a / 320, b / 200, c / 320, d / 200].map(function (x) { return vn(x, 3); }).join('; ') + ']']]));
+    }
+    draw();
+  },
+};
+
+SIMS.day24 = [BOXFMT_SIM, SPLIT_SIM, ROUTING_SIM];
 
 // Day 25 · Token ảnh
 SIMS.day25 = {
