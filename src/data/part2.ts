@@ -82,33 +82,6 @@ export const part2: Question[] = [
     ],
   },
   {
-    id: '52', part: 2, type: 'multi',
-    prompt: 'Khi nào nên chuyển sang Multi-Agent? (Chọn nhiều)',
-    answers: [
-      'Task gồm nhiều sub-tasks hoàn toàn độc lập có thể chạy song song',
-      'Task đòi hỏi vai trò chuyên biệt: Researcher → Writer → Critic',
-      'Task cần parallel processing (ví dụ crawl và tóm tắt 100 URL cùng lúc)',
-    ],
-    distractors: [
-      'Task đơn giản chỉ cần một lần gọi LLM',
-      'Khi muốn giảm số lượng token bằng mọi giá',
-    ],
-  },
-  {
-    id: '53', part: 2, type: 'multi',
-    prompt: 'Best practice thiết kế System Prompt? (Chọn nhiều)',
-    answers: [
-      'Mô tả rõ role, persona và nhiệm vụ chính của agent',
-      'Định nghĩa output format mong muốn (JSON schema, bullet list)',
-      'Liệt kê explicit những gì agent KHÔNG được làm (negative constraints)',
-      'Cung cấp few-shot examples cho task phức tạp',
-    ],
-    distractors: [
-      'Viết thật dài và mơ hồ để model tự quyết định',
-      'Đặt API key vào system prompt cho tiện',
-    ],
-  },
-  {
     id: '54', part: 2, type: 'single',
     prompt: '"Output contract" trong thiết kế LLM app là gì và đóng vai trò gì?',
     answer: 'Thỏa thuận cấu trúc dữ liệu đầu ra chặt chẽ (vd JSON Schema) mà LLM phải tuân theo, giúp hệ thống downstream (frontend, API, DB) parse an toàn mà không crash khi model sinh chữ ngẫu hứng',

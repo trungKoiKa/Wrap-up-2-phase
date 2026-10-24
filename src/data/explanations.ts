@@ -42,8 +42,6 @@ export const WHY: Record<string, string> = {
   '48': 'Baseline là chi phí/thời gian hiện tại của quy trình bị AI thay thế; có nó mới tính được mức tiết kiệm hay cải thiện (delta).',
   '49': 'EU AI Act chia 4 mức: Minimal/No risk, Limited risk, High risk, Unacceptable risk (bị cấm).',
   '51': 'AI mang tính xác suất, phụ thuộc chất lượng data và độ chính xác model nên cần PoC và Eval Gate trước khi scale; phần mềm truyền thống là deterministic.',
-  '52': 'Multi-agent đáng dùng khi có sub-task độc lập chạy song song, cần vai trò chuyên biệt (Researcher → Writer → Critic) hoặc xử lý song song khối lượng lớn. Task đơn giản chỉ cần một agent.',
-  '53': 'System prompt tốt có role/persona rõ, output format cụ thể, negative constraints và few-shot cho task phức tạp. Mơ hồ hay nhúng bí mật vào prompt là sai.',
   '54': 'Output contract (vd JSON Schema) đảm bảo đầu ra có cấu trúc cố định để frontend/API/DB parse an toàn, tránh crash khi model sinh văn bản tự do.',
   '56': 'Web form chỉ hiện khi báo sự cố và email chỉ gửi khi khiếu nại nên chỉ thu feedback tiêu cực: đó là selection bias, mẫu không đại diện cho toàn bộ khách hàng.',
   '59': 'Hai chi phí ẩn: đào tạo nhân viên làm việc cùng AI và chi phí kiểm soát chất lượng/xử lý sai số. Chi phí xây dựng 200 triệu và vận hành 15 triệu đã được nêu trong đề.',
