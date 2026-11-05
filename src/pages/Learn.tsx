@@ -209,44 +209,82 @@ function ConceptTerm({ c, enFirst }: { c: Concept; enFirst: boolean }) {
 
 type Annotated = ReturnType<typeof annotateLesson>
 
-/** Danh sách khái niệm của phần Cốt lõi (deep = false) hoặc Đào sâu; có nhãn khâu khi buổi có bản đồ. */
-function ConceptList({ d, a, enFirst, deep }: { d: Lesson; a: Annotated; enFirst: boolean; deep: boolean }) {
+function ConceptCard({ d, a, i, enFirst }: { d: Lesson; a: Annotated; i: number; enFirst: boolean }) {
+  const c = d.concepts[i]
   const stages = d.map?.stages ?? []
+  const si = stages.findIndex((s) => s.k === c.stage)
   return (
-    <div className="concepts">
-      {d.concepts.map((c, i) => {
-        if (!!c.deep !== deep) return null
-        const si = stages.findIndex((s) => s.k === c.stage)
+    <div className="concept">
+      <div>
+        {si >= 0 && (
+          <span className="lstage">
+            Khâu {si + 1} · {stages[si].en}
+          </span>
+        )}
+        <ConceptTerm c={c} enFirst={enFirst} />
+      </div>
+      <div className="body">
+        <p>
+          <Rich segs={a.concepts[i].d} />
+        </p>
+        <p className="lex">
+          <b>Ví dụ</b>
+          <Rich segs={a.concepts[i].ex} />
+        </p>
+        {c.fig && FIGS[c.fig] && (
+          <figure className="cfig">
+            {/* SVG do sổ ôn tự vẽ (nội dung tĩnh, không có dữ liệu người dùng) */}
+            <div dangerouslySetInnerHTML={{ __html: FIGS[c.fig]() }} />
+            {c.figCap && <figcaption>{c.figCap}</figcaption>}
+          </figure>
+        )}
+        {c.more && (
+          <details className="lmore">
+            <summary>Chi tiết</summary>
+            <p>
+              <Rich segs={a.concepts[i].more} />
+            </p>
+          </details>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Danh sách khái niệm của phần Cốt lõi (deep = false) hoặc Đào sâu; có nhãn khâu khi buổi có bản đồ.
+ * Buổi chia nhóm thì mỗi nhóm có tiêu đề riêng, đánh số theo bản đồ nhóm.
+ */
+function ConceptList({ d, a, enFirst, deep }: { d: Lesson; a: Annotated; enFirst: boolean; deep: boolean }) {
+  const pick = (g?: string) => d.concepts.flatMap((c, i) => (!!c.deep === deep && (g === undefined || c.g === g) ? [i] : []))
+  if (!d.groups)
+    return (
+      <div className="concepts">
+        {pick().map((i) => (
+          <ConceptCard key={d.concepts[i].t} d={d} a={a} i={i} enFirst={enFirst} />
+        ))}
+      </div>
+    )
+  return (
+    <>
+      {d.groups.map((g, gi) => {
+        const items = pick(g.k)
+        if (!items.length) return null
         return (
-          <div className="concept" key={c.t}>
-            <div>
-              {si >= 0 && (
-                <span className="lstage">
-                  Khâu {si + 1} · {stages[si].en}
-                </span>
-              )}
-              <ConceptTerm c={c} enFirst={enFirst} />
-            </div>
-            <div className="body">
-              <p>
-                <Rich segs={a.concepts[i].d} />
-              </p>
-              <p className="lex">
-                <b>Ví dụ</b>
-                <Rich segs={a.concepts[i].ex} />
-              </p>
-              {c.fig && FIGS[c.fig] && (
-                <figure className="cfig">
-                  {/* SVG do sổ ôn tự vẽ (nội dung tĩnh, không có dữ liệu người dùng) */}
-                  <div dangerouslySetInnerHTML={{ __html: FIGS[c.fig]() }} />
-                  {c.figCap && <figcaption>{c.figCap}</figcaption>}
-                </figure>
-              )}
+          <div className="lgroup" key={g.k}>
+            <h4>
+              <span className="gn">{gi + 1}</span>
+              {g.t}
+            </h4>
+            <div className="concepts">
+              {items.map((i) => (
+                <ConceptCard key={d.concepts[i].t} d={d} a={a} i={i} enFirst={enFirst} />
+              ))}
             </div>
           </div>
         )
       })}
-    </div>
+    </>
   )
 }
 
@@ -440,6 +478,32 @@ function Day({ d, book, known, onToggleKnown }: { d: Lesson; book: Book; known: 
                       Day {nd.n} <ArrowRight size={14} aria-hidden="true" />
                     </Link>
                   )}
+                </li>
+              )
+            })}
+          </ol>
+        </section>
+      ) : d.groups ? (
+        <section className="lsec">
+          <h3>
+            Bản đồ buổi học <small>{d.groups.length} nhóm, đọc lần lượt</small>
+          </h3>
+          <ol className="lgmap">
+            {d.groups.map((g, gi) => {
+              const core = d.concepts.filter((c) => c.g === g.k && !c.deep).length
+              const extra = d.concepts.filter((c) => c.g === g.k && c.deep).length
+              return (
+                <li key={g.k}>
+                  <span className="gt">
+                    <span className="gn">{gi + 1}</span>
+                    {g.t}
+                  </span>
+                  <span className="gd">
+                    <Rich segs={a.groups[gi]} />
+                  </span>
+                  <span className="gc">
+                    {core} cốt lõi{extra > 0 && ` · ${extra} đào sâu`}
+                  </span>
                 </li>
               )
             })}

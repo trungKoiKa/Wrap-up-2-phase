@@ -13,6 +13,10 @@ export interface Concept {
   stage?: string
   /** chi tiết công cụ / tham số: hiện trong phần "Đào sâu" thu gọn */
   deep?: boolean
+  /** nhóm khái niệm (`ConceptGroup.k`) khi buổi chia nhóm */
+  g?: string
+  /** phần giải thích thêm, thu gọn sau nút "Chi tiết" */
+  more?: string
   /** hình minh hoạ tĩnh (khoá trong FIGS của sổ) và chú thích của nó */
   fig?: string
   figCap?: string
@@ -52,6 +56,13 @@ export interface LessonMap {
   stages: MapStage[]
 }
 
+/** Một nhóm khái niệm của buổi (sổ Phase 2): tên tiếng Anh trước, một câu nói nhóm này để làm gì. */
+export interface ConceptGroup {
+  k: string
+  t: string
+  note: string
+}
+
 export interface Lesson {
   id: string
   /** phần đề tương ứng (chỉ sổ Phase 2 có; đề giữa kỳ chia theo chủ đề, không theo buổi) */
@@ -66,6 +77,8 @@ export interface Lesson {
   thread?: { name: string; text: string }
   /** bản đồ các khâu; có thì hiện thay cho `steps` */
   map?: LessonMap
+  /** nhóm khái niệm; có thì hiện bản đồ nhóm thay cho `steps` và xếp khái niệm theo nhóm */
+  groups?: ConceptGroup[]
   steps: string[]
   concepts: Concept[]
   formulas: Formula[]

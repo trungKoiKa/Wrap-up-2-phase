@@ -256,6 +256,20 @@ ol.lmap .mx { font-size: 0.84rem; background: var(--ok-soft); border-radius: 8px
 ol.lmap .mx b { color: var(--ok); font-weight: 600; margin-right: 4px; }
 ol.lmap .btn { justify-self: start; font-size: 0.82rem; padding: 4px 10px; }
 
+/* Bản đồ nhóm khái niệm (sổ Phase 2) và phần "Chi tiết" thu gọn trong từng khái niệm */
+ol.lgmap { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 10px; }
+ol.lgmap li { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+ol.lgmap .gt { font-weight: 700; display: flex; align-items: center; }
+ol.lgmap .gd { font-size: 0.9rem; }
+ol.lgmap .gc { font: 500 0.74rem var(--lmono); color: var(--muted); }
+.gn { display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; margin-right: 8px; border-radius: 50%; border: 1.5px solid var(--primary); color: var(--primary); font: 600 0.78rem var(--lmono); }
+.lgroup { display: grid; gap: 10px; min-width: 0; }
+.lgroup + .lgroup { margin-top: 18px; }
+.lgroup h4 { margin: 0; display: flex; align-items: center; font-size: 1.02rem; font-weight: 700; }
+details.lmore summary { cursor: pointer; width: fit-content; font-size: 0.84rem; font-weight: 500; color: var(--primary); }
+details.lmore[open] summary { margin-bottom: 4px; }
+details.lmore p { font-size: 0.92rem; color: var(--muted); border-left: 2px solid var(--border); padding-left: 10px; }
+
 .ltier { font: 600 0.74rem var(--lmono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--primary); }
 .lstage { display: inline-block; margin-bottom: 6px; font: 600 0.7rem var(--lmono); color: var(--primary); background: var(--primary-soft); border-radius: 6px; padding: 2px 7px; }
 

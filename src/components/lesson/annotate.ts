@@ -13,8 +13,9 @@ export interface AnnotatedLesson {
   why: Seg[]
   thread: Seg[]
   map: { does: Seg[]; eg: Seg[] }[]
+  groups: Seg[][]
   steps: Seg[][]
-  concepts: { d: Seg[]; ex: Seg[] }[]
+  concepts: { d: Seg[]; ex: Seg[]; more: Seg[] }[]
   sims: { intro: Seg[]; tries: Seg[][] }[]
   formulas: { read: Seg[]; ex: Seg[] }[]
   rows: Seg[][][]
@@ -44,11 +45,14 @@ export function annotateLesson(d: Lesson, sims: SimSpec[], annotator: Annotator)
   const a = (s: string) => annotator.annotate(s, seen)
   const concepts: AnnotatedLesson['concepts'] = []
   const formulas: AnnotatedLesson['formulas'] = []
+  // buổi chia nhóm thì trang xếp khái niệm theo nhóm, nên chú giải cũng đi theo thứ tự đó
+  const order = d.groups ? d.groups.flatMap((g) => d.concepts.flatMap((c, i) => (c.g === g.k ? [i] : []))) : d.concepts.map((_, i) => i)
   const doConcepts = (deep: boolean) =>
-    d.concepts.forEach((c, i) => {
+    order.forEach((i) => {
+      const c = d.concepts[i]
       if (!!c.deep !== deep) return
       annotator.markSeen([c.t, c.en, ...c.en.split(/\s*[/,]\s*/)], seen)
-      concepts[i] = { d: a(c.d), ex: a(c.ex) }
+      concepts[i] = { d: a(c.d), ex: a(c.ex), more: c.more ? a(c.more) : [] }
     })
   const doFormulas = (deep: boolean) =>
     d.formulas.forEach((f, i) => {
@@ -64,8 +68,9 @@ export function annotateLesson(d: Lesson, sims: SimSpec[], annotator: Annotator)
   const why = a(d.why)
   const thread = d.thread ? a(d.thread.text) : []
   const map = (d.map?.stages ?? []).map((s) => ({ does: a(s.does), eg: a(s.eg) }))
-  // buổi có bản đồ thì bản đồ thay cho lộ trình, nên không chú giải (và không hiện) steps
-  const steps = d.map ? [] : d.steps.map(a)
+  const groups = (d.groups ?? []).map((g) => a(g.note))
+  // buổi có bản đồ hoặc nhóm thì cái đó thay cho lộ trình, nên không chú giải (và không hiện) steps
+  const steps = d.map || d.groups ? [] : d.steps.map(a)
   doConcepts(false)
   const simText = sims.map((sim) => ({ intro: a(sim.intro), tries: sim.tries.map(a) }))
   doFormulas(false)
@@ -78,7 +83,7 @@ export function annotateLesson(d: Lesson, sims: SimSpec[], annotator: Annotator)
   const deepTraps = (d.deepTraps ?? []).map(a)
   const cards = d.cards.map(([q, ans]): [Seg[], Seg[]] => [a(q), a(ans)])
 
-  return { question, prereq, analogy, why, thread, map, steps, concepts, sims: simText, formulas, rows, traps, remember, deepTraps, cards }
+  return { question, prereq, analogy, why, thread, map, groups, steps, concepts, sims: simText, formulas, rows, traps, remember, deepTraps, cards }
 }
 
 export function annotateOverview(o: Overview, annotator: Annotator) {
