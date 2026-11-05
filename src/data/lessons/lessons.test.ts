@@ -32,7 +32,9 @@ describe('lesson books', () => {
       it('every lesson is complete', () => {
         for (const d of book.lessons) {
           expect(d.question.length, d.id).toBeGreaterThan(20)
-          expect(d.steps.length, d.id).toBeGreaterThanOrEqual(4)
+          // buổi chia nhóm thì bản đồ nhóm thay cho lộ trình
+          if (d.groups) expect(d.groups.length, d.id).toBeGreaterThanOrEqual(3)
+          else expect(d.steps.length, d.id).toBeGreaterThanOrEqual(4)
           expect(d.concepts.length, d.id).toBeGreaterThanOrEqual(6)
           for (const c of d.concepts) expect(c.t && c.en && c.d && c.ex, `${d.id} ${c.t}`).toBeTruthy()
           expect(d.formulas.length, d.id).toBeGreaterThanOrEqual(3)
@@ -58,6 +60,7 @@ describe('lesson books', () => {
             ...d.cards.flat(),
             ...(d.prereq ?? []).map((p) => p.d),
             ...(d.map?.stages ?? []).flatMap((s) => [s.does, s.eg]),
+            ...d.concepts.flatMap((c) => [c.d, c.ex, c.more ?? '']),
           ]
             .flatMap(inlineTex)
             .map((t) => [d.id, t, false] as const),
@@ -83,6 +86,12 @@ describe('lesson books', () => {
         for (const d of book.lessons) {
           const stages = new Set(d.map?.stages.map((s) => s.k))
           for (const c of d.concepts) if (c.stage) expect(stages.has(c.stage), `${d.id} ${c.t} → ${c.stage}`).toBe(true)
+          // buổi chia nhóm: mọi khái niệm thuộc đúng một nhóm có thật, nhóm nào cũng có khái niệm cốt lõi
+          if (d.groups) {
+            const keys = d.groups.map((g) => g.k)
+            for (const c of d.concepts) expect(keys, `${d.id} ${c.t} → ${c.g}`).toContain(c.g)
+            for (const k of keys) expect(d.concepts.some((c) => c.g === k && !c.deep), `${d.id} nhóm ${k}`).toBe(true)
+          }
           // bỏ hết phần Đào sâu vẫn còn đủ để học: ít nhất 5 khái niệm cốt lõi
           expect(d.concepts.filter((c) => !c.deep).length, d.id).toBeGreaterThanOrEqual(5)
           for (const p of d.prereq ?? []) {
